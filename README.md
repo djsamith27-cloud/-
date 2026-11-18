@@ -6,10 +6,10 @@ A native Android 3D First-Person Forest Island Survival game built with Kotlin, 
 
 ## 📥 GitHub එකෙන් Download කරන ආකාරය (Download from GitHub)
 
-### 1. Android APK එක Download කිරීම (Releases / Actions)
-1. **Releases හරහා:** මෙම GitHub repository එකේ දකුණු පස ඇති **Releases** -> **Latest Android APK (`latest-apk`)** වෙත ගොස් **`WildSurvival3D-debug.apk`** file එක download කර Android දුරකථනයේ install කරන්න.
-2. **Actions හරහා:** ඉහළින් ඇති **Actions** tab -> **Build Android APK** workflow එක මත click කර **Artifacts** යටතේ ඇති **`WildSurvival3D-debug-apk`** download කරගන්න.
-3. **AI Studio සිට Push කිරීම:** Google AI Studio හි ඉහළ-දකුණු **Settings / Export -> Push to GitHub** මගින් මෙම project එක ඔබේ GitHub repository එකට push කළ වහාම ඉහත GitHub Actions මගින් ස්වයංක්‍රීයව APK එක build වී **Releases** හි පළ වේ.
+### 1. Android APK එක Download කිරීම (Actions / Releases)
+1. **Actions Artifacts හරහා (සෑමවිටම ක්‍රියාත්මක වේ):** GitHub හි ඉහළ **Actions** tab -> **Build Android APK** workflow එක click කර, පහළ **Artifacts** යටතේ ඇති **`WildSurvival3D-debug-apk`** click කර download කරගන්න.
+2. **Releases හරහා:** GitHub repository පිටුවේ **Releases** -> **Latest Android APK (`latest-apk`)** වෙතින් **`WildSurvival3D-debug.apk`** කෙලින්ම download කරගත හැක. *(Release ස්වයංක්‍රීයව update වීමට Repo **Settings → Actions → General → Workflow permissions** හි **Read and write permissions** තෝරන්න).*
+3. **AI Studio සිට Push කිරීම:** Google AI Studio හි **Settings / Export → Push to GitHub** මගින් push කළ වහාම GitHub Actions මගින් APK එක ස්වයංක්‍රීයව build වේ.
 
 ### 2. Source Code හෝ Web Version (`index.html`) Download කිරීම
 - GitHub හි කොළ පැහැති **<> Code** බොත්තම click කර **Download ZIP** තෝරන්න.

@@ -3,8 +3,7 @@ name: Build Android APK
 on:
   push:
     branches:
-      - main
-      - master
+      - "**"
     tags:
       - "v*"
   workflow_dispatch:
@@ -30,21 +29,32 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Accept Android SDK Licenses & Install API 36
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.3.1"
 
-      - name: Restore debug signing keystore
+      - name: Restore or generate debug signing keystore
         run: |
-          if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
+          if [ ! -s debug.keystore ] && [ -f debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore || rm -f debug.keystore
+          fi
+          if [ ! -s debug.keystore ]; then
+            keytool -genkeypair -v -keystore debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
           fi
 
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Copy & rename APK
+      - name: Prepare APK output
         run: |
           mkdir -p release-apk
           cp app/build/outputs/apk/debug/app-debug.apk release-apk/WildSurvival3D-debug.apk
@@ -57,6 +67,8 @@ jobs:
           retention-days: 90
 
       - name: Publish Latest APK to GitHub Releases
+        id: release_step
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-apk
@@ -66,4 +78,12 @@ jobs:
             Download **WildSurvival3D-debug.apk** below and install on Android (Android 7.0+ / API 24+).
           files: release-apk/WildSurvival3D-debug.apk
           prerelease: false
-          make_latest: true
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "### Wild Survival 3D APK Build" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact Download:** Scroll down to **Artifacts** -> **WildSurvival3D-debug-apk**" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.release_step.outcome }}" != "success" ]; then
+            echo "- **GitHub Release Skipped:** Enable *Settings -> Actions -> General -> Workflow permissions -> Read and write permissions* to also auto-publish under Releases." >> $GITHUB_STEP_SUMMARY
+          fi
