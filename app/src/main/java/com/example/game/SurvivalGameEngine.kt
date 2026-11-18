@@ -19,13 +19,14 @@ class SurvivalGameEngine(
 ) {
     companion object {
         const val ISLAND_RADIUS = 88f
-        const val DAY_LENGTH_SEC = 85f
+        const val DAY_LENGTH_SEC = 180f
         const val POND_X = -14f
         const val POND_Z = -12f
         const val POND_Y = 0.06f
         const val POND_RADIUS = 10.5f
         const val EYE_HEIGHT = 1.75f
         const val RAY_MAX_DIST = 4.5f
+        private const val MAX_PARTICLES = 90
     }
 
     val worldLock = Any()
@@ -147,6 +148,9 @@ class SurvivalGameEngine(
     private var currentTarget: RayHit? = null
     private var nearCampfireRefuel: Boolean = false
     private var nearWarmFire: Boolean = false
+    private var activeTask: SurvivalTask? = null
+    private var completedTasksCount: Int = 0
+    private var nextTaskId: Int = 1
     private var toastMessage: String = ""
     private var toastSeq: Int = 0
     private var damageFlashSeq: Int = 0
@@ -201,6 +205,9 @@ class SurvivalGameEngine(
 
             buildWorld()
             updateLighting()
+            completedTasksCount = 0
+            nextTaskId = 1
+            activeTask = generateNextTask(previousType = null)
             gamePhase = GamePhase.PLAYING
             postToast("📖 නිර්මාණ පොත (Crafting Book) විවෘත කර ආයුධ සාදන්න!")
         }
@@ -407,12 +414,14 @@ class SurvivalGameEngine(
                     selectedSlot = 1
                     score += 100f
                     postToast("🪓 ගල් පොරව සෑදුවා! Hotbar [2] තෝරා ගන්නා ලදී.")
+                    advanceTask(TaskType.CRAFT_AXE, 1)
                 }
                 "spear" -> {
                     hasSpear = true
                     selectedSlot = 2
                     score += 180f
                     postToast("🔱 දඩයම් හෙල්ල සෑදුවා! Hotbar [3] තෝරා ගන්නා ලදී.")
+                    advanceTask(TaskType.CRAFT_SPEAR, 1)
                 }
                 "torch" -> {
                     torches += 1
@@ -428,6 +437,7 @@ class SurvivalGameEngine(
                     score += 90f
                     isCraftingOpen = false
                     postToast("🔥 ඔබ ඉදිරියෙන් නව ගිනි මැලයක් දල්වන ලදී!")
+                    advanceTask(TaskType.BUILD_CAMPFIRE, 1)
                 }
                 "bandage" -> {
                     bandages += 1
@@ -441,6 +451,7 @@ class SurvivalGameEngine(
                     sfx.play(SfxType.BERRY)
                     score += 120f
                     postToast("🍖 පිසූ මස් අනුභව කළා! (+65 කුසගින්න | +30 ❤️)")
+                    advanceTask(TaskType.COOK_MEAT, 1)
                 }
             }
         }
@@ -526,10 +537,12 @@ class SurvivalGameEngine(
                     wood += gained
                     score += 10f
                     postToast("+$gained 🪵 දර එකතු කරගත්තා")
+                    advanceTask(TaskType.CHOP_WOOD, gained)
                     if (tree.hp <= 0f) {
                         tree.respawnTimer = 45f
                         wood += 2
                         postToast("🌲 ගස කපා දැමුවා! +2 🪵")
+                        advanceTask(TaskType.CHOP_WOOD, 2)
                     }
                 }
                 TargetType.ROCK -> {
@@ -547,10 +560,12 @@ class SurvivalGameEngine(
                     stone += gained
                     score += 15f
                     postToast("+$gained 🪨 ගල් එකතු කරගත්තා")
+                    advanceTask(TaskType.MINE_STONE, gained)
                     if (rock.hp <= 0f) {
                         rock.respawnTimer = 50f
                         stone += 2
                         postToast("🪨 ගල කැඩුවා! +2 🪨")
+                        advanceTask(TaskType.MINE_STONE, 2)
                     }
                 }
                 TargetType.BUSH -> {
@@ -567,6 +582,7 @@ class SurvivalGameEngine(
                     sfx.play(SfxType.BERRY)
                     spawnParticles(hpPt.x, hpPt.y, hpPt.z, 0.96f, 0.25f, 0.37f, 7)
                     postToast("+2 🍒 පලතුරු කඩාගත්තා")
+                    advanceTask(TaskType.PICK_BERRIES, 2)
                 }
                 TargetType.WATER -> {
                     thirst = min(100f, thirst + 40f)
@@ -574,6 +590,7 @@ class SurvivalGameEngine(
                     sfx.play(SfxType.DRINK)
                     spawnParticles(hpPt.x, hpPt.y, hpPt.z, 0.22f, 0.74f, 0.97f, 8)
                     postToast("💧 පිරිසිදු ජලය පානය කළා (+40 පිපාසය)")
+                    advanceTask(TaskType.DRINK_WATER, 1)
                 }
                 TargetType.WOLF -> {
                     val wolf = wolves.getOrNull(hit.index) ?: return
@@ -598,6 +615,7 @@ class SurvivalGameEngine(
                         score += 150f
                         rawMeat += 1
                         postToast("🐺 වෘකයා පරාජය කළා! +1 🥩 අමු මස් (නිර්මාණ පොතෙන් පිසගන්න)")
+                        advanceTask(TaskType.DEFEAT_WOLF, 1)
                     } else {
                         postToast("⚔️ වෘකයාට පහර දුන්නා (-${dmg.toInt()} HP)")
                     }
@@ -617,13 +635,14 @@ class SurvivalGameEngine(
                 return
             }
 
-            // 1. Day/Night Cycle
+            // 1. Day/Night Cycle (Extended Daytime)
             timeOfDay += dt / DAY_LENGTH_SEC
             if (timeOfDay >= 1.0f) {
                 timeOfDay -= 1.0f
                 dayCount++
                 score += 200f
                 postToast("☀️ දිනය $dayCount උදා විය! (+200 ලකුණු)")
+                advanceTask(TaskType.SURVIVE_DAY, 1)
                 shouldEmitNow = true
             }
             updateLighting()
@@ -782,8 +801,8 @@ class SurvivalGameEngine(
                 }
             }
 
-            // 7. Nighttime Wolves AI
-            val nightNow = timeOfDay in 0.62f..0.92f
+            // 7. Nighttime Wolves AI (Longer day -> wolves active during night 0.72..0.93)
+            val nightNow = timeOfDay in 0.72f..0.93f
             if (nightNow) {
                 val maxWolves = 2 + dayCount
                 if (wolves.size < maxWolves && Random.nextFloat() < 0.35f * dt) {
@@ -901,6 +920,9 @@ class SurvivalGameEngine(
 
     private fun spawnParticles(x: Float, y: Float, z: Float, r: Float, g: Float, b: Float, count: Int) {
         for (i in 0 until count) {
+            if (particles.size >= MAX_PARTICLES) {
+                particles.removeAt(0)
+            }
             particles.add(
                 ParticleEntity(
                     x = x,
@@ -919,51 +941,51 @@ class SurvivalGameEngine(
     }
 
     private fun updateLighting() {
-        val dayR = 0.494f; val dayG = 0.784f; val dayB = 0.890f
-        val setR = 0.851f; val setG = 0.467f; val setB = 0.024f
-        val nightR = 0.020f; val nightG = 0.035f; val nightB = 0.078f
+        val dayR = 0.460f; val dayG = 0.790f; val dayB = 0.910f
+        val setR = 0.870f; val setG = 0.470f; val setB = 0.090f
+        val nightR = 0.024f; val nightG = 0.042f; val nightB = 0.092f
 
         when {
-            timeOfDay < 0.50f -> {
-                skyR = dayR; skyG = dayG; skyB = dayB
-                sunIntensity = 1.15f; hemiIntensity = 0.75f; starOpacity = 0f
-            }
             timeOfDay < 0.62f -> {
-                val t = (timeOfDay - 0.50f) / 0.12f
+                skyR = dayR; skyG = dayG; skyB = dayB
+                sunIntensity = 1.18f; hemiIntensity = 0.78f; starOpacity = 0f
+            }
+            timeOfDay < 0.72f -> {
+                val t = (timeOfDay - 0.62f) / 0.10f
                 skyR = lerp(dayR, setR, t)
                 skyG = lerp(dayG, setG, t)
                 skyB = lerp(dayB, setB, t)
-                sunIntensity = 1.15f - t * 0.6f
-                hemiIntensity = 0.75f - t * 0.35f
+                sunIntensity = 1.18f - t * 0.58f
+                hemiIntensity = 0.78f - t * 0.36f
                 starOpacity = 0f
             }
-            timeOfDay < 0.68f -> {
-                val t = (timeOfDay - 0.62f) / 0.06f
+            timeOfDay < 0.77f -> {
+                val t = (timeOfDay - 0.72f) / 0.05f
                 skyR = lerp(setR, nightR, t)
                 skyG = lerp(setG, nightG, t)
                 skyB = lerp(setB, nightB, t)
-                sunIntensity = 0.55f - t * 0.42f
-                hemiIntensity = 0.40f - t * 0.25f
+                sunIntensity = 0.60f - t * 0.44f
+                hemiIntensity = 0.42f - t * 0.25f
                 starOpacity = t
             }
-            timeOfDay <= 0.90f -> {
+            timeOfDay <= 0.92f -> {
                 skyR = nightR; skyG = nightG; skyB = nightB
-                sunIntensity = 0.14f; hemiIntensity = 0.16f; starOpacity = 0.95f
+                sunIntensity = 0.16f; hemiIntensity = 0.17f; starOpacity = 0.95f
             }
             else -> {
-                val t = (timeOfDay - 0.90f) / 0.10f
+                val t = (timeOfDay - 0.92f) / 0.08f
                 skyR = lerp(nightR, dayR, t)
                 skyG = lerp(nightG, dayG, t)
                 skyB = lerp(nightB, dayB, t)
-                sunIntensity = 0.14f + t * 1.01f
-                hemiIntensity = 0.16f + t * 0.59f
+                sunIntensity = 0.16f + t * 1.02f
+                hemiIntensity = 0.17f + t * 0.61f
                 starOpacity = 1f - t
             }
         }
 
-        val sunAngle = (timeOfDay - 0.25f) * 2f * PI.toFloat()
+        val sunAngle = (timeOfDay - 0.20f) * 2f * PI.toFloat()
         val sx = cos(sunAngle) * 60f
-        val sy = sin(sunAngle) * 70f + 25f
+        val sy = sin(sunAngle) * 65f + 32f
         val sz = 30f
         val slen = sqrt(sx * sx + sy * sy + sz * sz).coerceAtLeast(1f)
         sunDirX = sx / slen
@@ -1154,19 +1176,115 @@ class SurvivalGameEngine(
         }
     }
 
+    private fun advanceTask(eventType: TaskType, delta: Int) {
+        val current = activeTask ?: return
+        if (current.type != eventType || delta <= 0) return
+
+        val nextProg = (current.progress + delta).coerceAtMost(current.target)
+        if (nextProg >= current.target) {
+            completedTasksCount++
+            score += current.rewardScore
+            wood += current.bonusWood
+            berries += current.bonusBerries
+            sfx.play(SfxType.CRAFT)
+            val bonusTxt = buildString {
+                if (current.bonusWood > 0) append(" +${current.bonusWood}🪵")
+                if (current.bonusBerries > 0) append(" +${current.bonusBerries}🍒")
+            }
+            postToast("✅ මෙහෙයුම සම්පූර්ණයි! +${current.rewardScore} ලකුණු$bonusTxt")
+            activeTask = generateNextTask(previousType = current.type)
+        } else {
+            activeTask = current.copy(progress = nextProg)
+        }
+    }
+
+    private fun generateNextTask(previousType: TaskType?): SurvivalTask {
+        val id = nextTaskId++
+        val scale = (1 + (dayCount - 1) / 2).coerceAtMost(3)
+        val nightNow = timeOfDay in 0.70f..0.93f
+
+        // Contextual priority first, then varied survival loop
+        val candidateType: TaskType = when {
+            thirst < 60f && previousType != TaskType.DRINK_WATER -> TaskType.DRINK_WATER
+            !hasAxe && wood >= 3 && stone >= 2 && previousType != TaskType.CRAFT_AXE -> TaskType.CRAFT_AXE
+            !hasAxe && wood < 3 && previousType != TaskType.CHOP_WOOD -> TaskType.CHOP_WOOD
+            !hasAxe && stone < 2 && previousType != TaskType.MINE_STONE -> TaskType.MINE_STONE
+            !hasSpear && wood >= 4 && stone >= 2 && previousType != TaskType.CRAFT_SPEAR -> TaskType.CRAFT_SPEAR
+            rawMeat > 0 && wood >= 1 && previousType != TaskType.COOK_MEAT -> TaskType.COOK_MEAT
+            nightNow && wolves.isNotEmpty() && previousType != TaskType.DEFEAT_WOLF -> TaskType.DEFEAT_WOLF
+            else -> {
+                val pool = buildList {
+                    add(TaskType.CHOP_WOOD)
+                    add(TaskType.MINE_STONE)
+                    add(TaskType.PICK_BERRIES)
+                    add(TaskType.DRINK_WATER)
+                    if (!hasSpear) add(TaskType.CRAFT_SPEAR)
+                    if (campfires.size < 2) add(TaskType.BUILD_CAMPFIRE)
+                    if (nightNow) add(TaskType.DEFEAT_WOLF)
+                    add(TaskType.SURVIVE_DAY)
+                }.filter { it != previousType }
+                pool.random()
+            }
+        }
+
+        return when (candidateType) {
+            TaskType.CHOP_WOOD -> {
+                val t = 3 + scale * 2
+                SurvivalTask(id, TaskType.CHOP_WOOD, "🪵", "දර $t ක් එකතු කරන්න", 0, t, 75, bonusBerries = 1)
+            }
+            TaskType.MINE_STONE -> {
+                val t = 2 + scale * 2
+                SurvivalTask(id, TaskType.MINE_STONE, "🪨", "ගල් $t ක් කඩාගන්න", 0, t, 85, bonusWood = 2)
+            }
+            TaskType.PICK_BERRIES -> {
+                val t = 4 + scale * 2
+                SurvivalTask(id, TaskType.PICK_BERRIES, "🍒", "පලතුරු $t ක් කඩන්න", 0, t, 70, bonusWood = 2)
+            }
+            TaskType.CRAFT_AXE -> {
+                SurvivalTask(id, TaskType.CRAFT_AXE, "🪓", "නිර්මාණ පොතෙන් ගල් පොරව සාදන්න", 0, 1, 120, bonusWood = 2)
+            }
+            TaskType.CRAFT_SPEAR -> {
+                SurvivalTask(id, TaskType.CRAFT_SPEAR, "🔱", "නිර්මාණ පොතෙන් දඩයම් හෙල්ල සාදන්න", 0, 1, 160, bonusBerries = 2)
+            }
+            TaskType.DRINK_WATER -> {
+                SurvivalTask(id, TaskType.DRINK_WATER, "💧", "පොකුණෙන් පිරිසිදු ජලය බොන්න", 0, 1, 65, bonusWood = 1)
+            }
+            TaskType.BUILD_CAMPFIRE -> {
+                SurvivalTask(id, TaskType.BUILD_CAMPFIRE, "🔥", "නව ගිනි මැලයක් දල්වන්න", 0, 1, 140, bonusBerries = 2)
+            }
+            TaskType.DEFEAT_WOLF -> {
+                val t = (1 + (dayCount - 1) / 3).coerceAtMost(3)
+                SurvivalTask(id, TaskType.DEFEAT_WOLF, "🐺", "රාත්‍රී වෘකයන් $t ක් පරාජය කරන්න", 0, t, 180 * t, bonusWood = 3)
+            }
+            TaskType.COOK_MEAT -> {
+                SurvivalTask(id, TaskType.COOK_MEAT, "🍖", "වෘක මස් පිස ආහාරයට ගන්න", 0, 1, 130, bonusBerries = 2)
+            }
+            TaskType.SURVIVE_DAY -> {
+                SurvivalTask(id, TaskType.SURVIVE_DAY, "☀️", "ඊළඟ දිනය උදා වන තුරු ජීවත් වන්න", 0, 1, 150, bonusWood = 2)
+            }
+        }
+    }
+
     private fun emitHudImmediate() {
         val snap = synchronized(worldLock) {
-            val mapPoints = ArrayList<MinimapPoint>(
-                trees.size + rocks.size + bushes.size + campfires.size + wolves.size
-            )
+            val radarRangeSq = 68f * 68f
+            val px = playerPos.x
+            val pz = playerPos.z
+            val mapPoints = ArrayList<MinimapPoint>(64)
             for (t in trees) {
-                if (t.hp > 0f) mapPoints.add(MinimapPoint(t.x, t.z, MinimapKind.TREE))
+                if (t.hp > 0f && ((t.x - px) * (t.x - px) + (t.z - pz) * (t.z - pz)) <= radarRangeSq) {
+                    mapPoints.add(MinimapPoint(t.x, t.z, MinimapKind.TREE))
+                }
             }
             for (r in rocks) {
-                if (r.hp > 0f) mapPoints.add(MinimapPoint(r.x, r.z, MinimapKind.ROCK))
+                if (r.hp > 0f && ((r.x - px) * (r.x - px) + (r.z - pz) * (r.z - pz)) <= radarRangeSq) {
+                    mapPoints.add(MinimapPoint(r.x, r.z, MinimapKind.ROCK))
+                }
             }
             for (b in bushes) {
-                if (b.hasBerries) mapPoints.add(MinimapPoint(b.x, b.z, MinimapKind.BUSH))
+                if (b.hasBerries && ((b.x - px) * (b.x - px) + (b.z - pz) * (b.z - pz)) <= radarRangeSq) {
+                    mapPoints.add(MinimapPoint(b.x, b.z, MinimapKind.BUSH))
+                }
             }
             for (cf in campfires) {
                 mapPoints.add(MinimapPoint(cf.x, cf.z, MinimapKind.CAMPFIRE))
@@ -1199,9 +1317,11 @@ class SurvivalGameEngine(
                 dayCount = dayCount,
                 timeOfDay = timeOfDay,
                 yaw = yaw,
-                playerX = playerPos.x,
-                playerZ = playerPos.z,
+                playerX = px,
+                playerZ = pz,
                 minimapPoints = mapPoints,
+                activeTask = activeTask,
+                completedTasksCount = completedTasksCount,
                 targetPrompt = currentTarget?.label,
                 nearCampfireForRefuel = nearCampfireRefuel,
                 nearWarmFire = nearWarmFire,

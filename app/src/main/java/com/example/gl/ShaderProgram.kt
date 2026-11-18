@@ -16,6 +16,9 @@ class WorldShaderProgram {
     val uModelMatrix: Int
     val uColor: Int
     val uEmissive: Int
+    val uSpecular: Int
+    val uDetailScale: Int
+    val uTime: Int
     val uSunDir: Int
     val uSunIntensity: Int
     val uHemiIntensity: Int
@@ -54,6 +57,9 @@ class WorldShaderProgram {
 
             uniform vec3 uColor;
             uniform float uEmissive;
+            uniform float uSpecular;
+            uniform float uDetailScale;
+            uniform float uTime;
             uniform vec3 uSunDir;
             uniform float uSunIntensity;
             uniform float uHemiIntensity;
@@ -67,14 +73,38 @@ class WorldShaderProgram {
 
             void main() {
                 vec3 N = normalize(vWorldNormal);
+                vec3 V = normalize(uCameraPos - vWorldPos);
+                vec3 sunL = normalize(uSunDir);
+
+                // Subtle organic procedural surface grain & animated water ripple
+                float grain = 1.0;
+                if (uDetailScale > 0.001) {
+                    float n1 = sin(vWorldPos.x * 1.9 + vWorldPos.z * 1.4) * cos(vWorldPos.z * 2.1 - vWorldPos.x * 1.2);
+                    float n2 = sin(vWorldPos.x * 5.7 - vWorldPos.z * 4.9) * 0.45;
+                    grain = 1.0 + (n1 + n2) * uDetailScale;
+                }
+                if (uSpecular > 0.7) {
+                    float wave = sin(vWorldPos.x * 1.6 + uTime * 2.4) * cos(vWorldPos.z * 1.7 - uTime * 1.9);
+                    N = normalize(N + vec3(wave * 0.08, 0.0, wave * 0.08));
+                    grain += wave * 0.06;
+                }
 
                 float hemiFactor = N.y * 0.5 + 0.5;
-                vec3 skyAmb = vec3(0.86, 0.92, 1.0);
-                vec3 groundAmb = vec3(0.12, 0.25, 0.13);
+                vec3 skyAmb = vec3(0.86, 0.93, 1.0);
+                vec3 groundAmb = vec3(0.14, 0.28, 0.15);
                 vec3 ambient = mix(groundAmb, skyAmb, hemiFactor) * uHemiIntensity;
 
-                float ndotl = max(dot(N, normalize(uSunDir)), 0.0);
-                vec3 sun = vec3(1.0, 0.98, 0.92) * ndotl * uSunIntensity;
+                float ndotl = max(dot(N, sunL), 0.0);
+                vec3 sun = vec3(1.0, 0.97, 0.90) * ndotl * uSunIntensity;
+
+                // Blinn-Phong sun specular highlight (water shimmer & metallic tools)
+                vec3 specGlow = vec3(0.0);
+                if (uSpecular > 0.01 && ndotl > 0.0) {
+                    vec3 H = normalize(sunL + V);
+                    float specAngle = max(dot(N, H), 0.0);
+                    float specPow = pow(specAngle, 20.0);
+                    specGlow = vec3(1.0, 0.96, 0.85) * specPow * uSpecular * uSunIntensity * 0.75;
+                }
 
                 vec3 pointTotal = vec3(0.0);
                 for (int i = 0; i < 6; i++) {
@@ -92,7 +122,8 @@ class WorldShaderProgram {
                     }
                 }
 
-                vec3 litColor = uColor * (ambient + sun + pointTotal + vec3(uEmissive));
+                vec3 baseColor = uColor * grain;
+                vec3 litColor = baseColor * (ambient + sun + pointTotal + vec3(uEmissive)) + specGlow;
 
                 float camDist = length(vWorldPos - uCameraPos);
                 float fogArg = camDist * uFogDensity;
@@ -116,6 +147,9 @@ class WorldShaderProgram {
             uModelMatrix = GLES20.glGetUniformLocation(programId, "uModelMatrix")
             uColor = GLES20.glGetUniformLocation(programId, "uColor")
             uEmissive = GLES20.glGetUniformLocation(programId, "uEmissive")
+            uSpecular = GLES20.glGetUniformLocation(programId, "uSpecular")
+            uDetailScale = GLES20.glGetUniformLocation(programId, "uDetailScale")
+            uTime = GLES20.glGetUniformLocation(programId, "uTime")
             uSunDir = GLES20.glGetUniformLocation(programId, "uSunDir")
             uSunIntensity = GLES20.glGetUniformLocation(programId, "uSunIntensity")
             uHemiIntensity = GLES20.glGetUniformLocation(programId, "uHemiIntensity")
@@ -132,6 +166,9 @@ class WorldShaderProgram {
             uModelMatrix = -1
             uColor = -1
             uEmissive = -1
+            uSpecular = -1
+            uDetailScale = -1
+            uTime = -1
             uSunDir = -1
             uSunIntensity = -1
             uHemiIntensity = -1
@@ -158,7 +195,7 @@ class StarShaderProgram {
             attribute vec3 aPosition;
             void main() {
                 gl_Position = uMVPMatrix * vec4(aPosition, 1.0);
-                gl_PointSize = 3.0;
+                gl_PointSize = 3.2;
             }
         """.trimIndent()
 

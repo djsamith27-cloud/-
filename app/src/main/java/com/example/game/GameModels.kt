@@ -202,6 +202,31 @@ data class MinimapPoint(
     val kind: MinimapKind
 )
 
+enum class TaskType {
+    CHOP_WOOD,
+    MINE_STONE,
+    PICK_BERRIES,
+    CRAFT_AXE,
+    CRAFT_SPEAR,
+    DRINK_WATER,
+    BUILD_CAMPFIRE,
+    DEFEAT_WOLF,
+    COOK_MEAT,
+    SURVIVE_DAY
+}
+
+data class SurvivalTask(
+    val id: Int,
+    val type: TaskType,
+    val icon: String,
+    val titleSi: String,
+    val progress: Int,
+    val target: Int,
+    val rewardScore: Int,
+    val bonusWood: Int = 0,
+    val bonusBerries: Int = 0
+)
+
 data class HudSnapshot(
     val gamePhase: GamePhase = GamePhase.START,
     val isCraftingOpen: Boolean = false,
@@ -229,6 +254,8 @@ data class HudSnapshot(
     val playerX: Float = 0f,
     val playerZ: Float = 10f,
     val minimapPoints: List<MinimapPoint> = emptyList(),
+    val activeTask: SurvivalTask? = null,
+    val completedTasksCount: Int = 0,
     val targetPrompt: String? = null,
     val nearCampfireForRefuel: Boolean = false,
     val nearWarmFire: Boolean = false,

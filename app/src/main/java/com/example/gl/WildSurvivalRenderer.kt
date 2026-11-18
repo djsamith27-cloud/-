@@ -28,6 +28,8 @@ class WildSurvivalRenderer(
     private lateinit var beachRingMesh: GpuMesh
     private lateinit var pondShoreMesh: GpuMesh
     private lateinit var pondWaterMesh: GpuMesh
+    private lateinit var celestialMesh: GpuMesh
+    private lateinit var cloudMesh: GpuMesh
     private lateinit var trunkMesh: GpuMesh
     private lateinit var pineCone0: GpuMesh
     private lateinit var pineCone1: GpuMesh
@@ -61,17 +63,42 @@ class WildSurvivalRenderer(
 
     private var starVboId = 0
 
+    // Pre-allocated matrices & arrays (zero per-frame GC allocations)
     private val projMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
     private val vpMatrix = FloatArray(16)
     private val modelMatrix = FloatArray(16)
     private val mvpMatrix = FloatArray(16)
+    private val starViewMatrix = FloatArray(16)
+    private val starMvpMatrix = FloatArray(16)
+    private val baseArmMatrix = FloatArray(16)
 
     private val pointLightPos = FloatArray(6 * 3)
     private val pointLightColor = FloatArray(6 * 3)
     private val pointLightIntensity = FloatArray(6)
 
-    private var lastFrameNs = 0L
+    private data class CloudInfo(val x: Float, val y: Float, val z: Float, val sx: Float, val sy: Float, val sz: Float, val speed: Float)
+    private val clouds = listOf(
+        CloudInfo(-55f, 36f, -45f, 9.5f, 2.2f, 5.2f, 0.9f),
+        CloudInfo(20f, 40f, -68f, 12.0f, 2.5f, 6.0f, 0.7f),
+        CloudInfo(62f, 35f, 12f, 8.5f, 2.0f, 4.8f, 1.1f),
+        CloudInfo(-38f, 42f, 52f, 11.0f, 2.4f, 5.5f, 0.8f),
+        CloudInfo(5f, 38f, 28f, 7.8f, 1.9f, 4.4f, 1.0f)
+    )
+
+    private val berryOffsets = arrayOf(
+        floatArrayOf(0.5f, 0.8f, 0.4f),
+        floatArrayOf(-0.5f, 0.75f, 0.45f),
+        floatArrayOf(0.1f, 1.1f, -0.5f),
+        floatArrayOf(-0.35f, 0.9f, -0.45f),
+        floatArrayOf(0.4f, 0.6f, -0.4f)
+    )
+    private val legPositions = arrayOf(
+        floatArrayOf(-0.22f, 0.22f, 0.45f, 1f),
+        floatArrayOf(0.22f, 0.22f, 0.45f, -1f),
+        floatArrayOf(-0.22f, 0.22f, -0.45f, -1f),
+        floatArrayOf(0.22f, 0.22f, -0.45f, 1f)
+    )
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
@@ -82,7 +109,7 @@ class WildSurvivalRenderer(
         starShader = StarShaderProgram()
 
         // Upload World Meshes
-        oceanMesh = MeshBuilder.upload(MeshBuilder.createPlaneXZ(550f, 550f))
+        oceanMesh = MeshBuilder.upload(MeshBuilder.createPlaneXZ(560f, 560f))
         islandMesh = MeshBuilder.upload(
             MeshBuilder.createCylinder(
                 SurvivalGameEngine.ISLAND_RADIUS,
@@ -100,6 +127,8 @@ class WildSurvivalRenderer(
         )
         pondShoreMesh = MeshBuilder.upload(MeshBuilder.createCircleXZ(SurvivalGameEngine.POND_RADIUS + 1.2f, 32))
         pondWaterMesh = MeshBuilder.upload(MeshBuilder.createCircleXZ(SurvivalGameEngine.POND_RADIUS, 32))
+        celestialMesh = MeshBuilder.upload(MeshBuilder.createFacetedSphere(5.5f, 6, 10))
+        cloudMesh = MeshBuilder.upload(MeshBuilder.createBox(1f, 1f, 1f))
 
         trunkMesh = MeshBuilder.upload(MeshBuilder.createCylinder(0.28f, 0.42f, 3.2f, 7))
         pineCone0 = MeshBuilder.upload(MeshBuilder.createCone(1.9f, 2.4f, 7))
@@ -149,20 +178,27 @@ class WildSurvivalRenderer(
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, starVboId)
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, stars.size * 4, fb, GLES20.GL_STATIC_DRAW)
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0)
-
-        lastFrameNs = System.nanoTime()
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES20.glViewport(0, 0, width, height)
         val aspect = width.toFloat() / height.coerceAtLeast(1).toFloat()
-        Matrix.perspectiveM(projMatrix, 0, 72f, aspect, 0.1f, 250f)
+        Matrix.perspectiveM(projMatrix, 0, 72f, aspect, 0.1f, 260f)
     }
 
     override fun onDrawFrame(gl: GL10?) {
         synchronized(engine.worldLock) {
             renderSceneLocked()
         }
+    }
+
+    private fun isVisibleRange(x: Float, z: Float, camX: Float, camZ: Float, fwdX: Float, fwdZ: Float, maxDistSq: Float): Boolean {
+        val dx = x - camX
+        val dz = z - camZ
+        val dSq = dx * dx + dz * dz
+        if (dSq > maxDistSq) return false
+        if (dSq < 49f) return true // Always draw nearby objects
+        return (dx * fwdX + dz * fwdZ) > -7.5f
     }
 
     private fun renderSceneLocked() {
@@ -184,6 +220,8 @@ class WildSurvivalRenderer(
             engine.yaw
         }
         val camPitch = if (engine.gamePhase == GamePhase.START) -0.08f else engine.pitch
+        val fwdX = -sin(camYaw)
+        val fwdZ = -cos(camYaw)
 
         // View Matrix: Rx(-pitch) * Ry(-yaw) * T(-camPos)
         Matrix.setIdentityM(viewMatrix, 0)
@@ -200,13 +238,11 @@ class WildSurvivalRenderer(
             GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
             GLES20.glDepthMask(false)
             GLES20.glUseProgram(starShader.programId)
-            val starView = FloatArray(16)
-            Matrix.setIdentityM(starView, 0)
-            Matrix.rotateM(starView, 0, -Math.toDegrees(camPitch.toDouble()).toFloat(), 1f, 0f, 0f)
-            Matrix.rotateM(starView, 0, -Math.toDegrees(camYaw.toDouble()).toFloat(), 0f, 1f, 0f)
-            val starMvp = FloatArray(16)
-            Matrix.multiplyMM(starMvp, 0, projMatrix, 0, starView, 0)
-            GLES20.glUniformMatrix4fv(starShader.uMVPMatrix, 1, false, starMvp, 0)
+            Matrix.setIdentityM(starViewMatrix, 0)
+            Matrix.rotateM(starViewMatrix, 0, -Math.toDegrees(camPitch.toDouble()).toFloat(), 1f, 0f, 0f)
+            Matrix.rotateM(starViewMatrix, 0, -Math.toDegrees(camYaw.toDouble()).toFloat(), 0f, 1f, 0f)
+            Matrix.multiplyMM(starMvpMatrix, 0, projMatrix, 0, starViewMatrix, 0)
+            GLES20.glUniformMatrix4fv(starShader.uMVPMatrix, 1, false, starMvpMatrix, 0)
             GLES20.glUniform1f(starShader.uOpacity, engine.starOpacity)
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, starVboId)
             GLES20.glEnableVertexAttribArray(starShader.aPosition)
@@ -219,29 +255,28 @@ class WildSurvivalRenderer(
         }
 
         // 2. Setup World Shader & Dynamic Point Lights
+        val tSec = engine.elapsedSec
         GLES20.glUseProgram(worldShader.programId)
         GLES20.glUniform3f(worldShader.uSunDir, engine.sunDirX, engine.sunDirY, engine.sunDirZ)
         GLES20.glUniform1f(worldShader.uSunIntensity, engine.sunIntensity)
         GLES20.glUniform1f(worldShader.uHemiIntensity, engine.hemiIntensity)
         GLES20.glUniform3f(worldShader.uSkyColor, skyR, skyG, skyB)
-        GLES20.glUniform1f(worldShader.uFogDensity, 0.014f)
+        GLES20.glUniform1f(worldShader.uFogDensity, 0.0115f)
         GLES20.glUniform3f(worldShader.uCameraPos, camX, camY, camZ)
+        if (worldShader.uTime >= 0) GLES20.glUniform1f(worldShader.uTime, tSec)
 
         for (i in 0 until 6) {
             pointLightIntensity[i] = 0f
         }
         var lightCount = 0
-        val tSec = engine.elapsedSec
-        // Hand Torch Point Light
         if (engine.selectedSlot == 3 && engine.torches > 0) {
             pointLightPos[0] = camX + (-sin(engine.yaw)) * 0.7f
             pointLightPos[1] = camY + 0.1f
             pointLightPos[2] = camZ + (-cos(engine.yaw)) * 0.7f
             pointLightColor[0] = 1.0f; pointLightColor[1] = 0.55f; pointLightColor[2] = 0.12f
-            pointLightIntensity[0] = 2.1f + sin(tSec * 25f) * 0.45f
+            pointLightIntensity[0] = 2.2f + sin(tSec * 25f) * 0.45f
             lightCount++
         }
-        // Nearest Campfire Point Lights (up to total 6)
         for (i in engine.campfires.indices) {
             if (lightCount >= 6) break
             val cf = engine.campfires[i]
@@ -252,7 +287,7 @@ class WildSurvivalRenderer(
             pointLightColor[idx * 3] = 1.0f
             pointLightColor[idx * 3 + 1] = 0.48f
             pointLightColor[idx * 3 + 2] = 0.05f
-            pointLightIntensity[idx] = (1.8f + sin(tSec * 19f + i * 1.7f) * 0.4f) * (cf.fuel / 100f)
+            pointLightIntensity[idx] = (1.9f + sin(tSec * 19f + i * 1.7f) * 0.4f) * (cf.fuel / 100f)
             lightCount++
         }
         if (worldShader.uPointLightPos >= 0) {
@@ -265,41 +300,63 @@ class WildSurvivalRenderer(
             GLES20.glUniform1fv(worldShader.uPointLightIntensity, 6, pointLightIntensity, 0)
         }
 
-        // 3. Draw Terrain & Water (double-sided for thin planar layers)
+        // 2b. Celestial Sun / Moon & Drifting Sky Clouds
+        val isNight = engine.timeOfDay in 0.74f..0.92f
+        val bodyDist = 145f
+        val bodyX = camX + (if (isNight) -engine.sunDirX else engine.sunDirX) * bodyDist
+        val bodyY = (if (isNight) 58f else (engine.sunDirY * bodyDist).coerceAtLeast(18f))
+        val bodyZ = camZ + (if (isNight) -engine.sunDirZ else engine.sunDirZ) * bodyDist
+        Matrix.setIdentityM(modelMatrix, 0)
+        Matrix.translateM(modelMatrix, 0, bodyX, bodyY, bodyZ)
+        if (isNight) {
+            drawMesh(celestialMesh, 0.85f, 0.90f, 1.0f, emissive = 0.95f)
+        } else {
+            drawMesh(celestialMesh, 1.0f, 0.93f, 0.62f, emissive = 1.05f)
+        }
+
+        val cloudR = (skyR * 0.45f + 0.55f).coerceIn(0.22f, 0.98f)
+        val cloudG = (skyG * 0.45f + 0.55f).coerceIn(0.24f, 0.98f)
+        val cloudB = (skyB * 0.45f + 0.55f).coerceIn(0.28f, 1.0f)
+        for (c in clouds) {
+            val wrappedX = ((c.x + tSec * c.speed + 110f) % 220f) - 110f
+            Matrix.setIdentityM(modelMatrix, 0)
+            Matrix.translateM(modelMatrix, 0, wrappedX, c.y, c.z)
+            Matrix.scaleM(modelMatrix, 0, c.sx, c.sy, c.sz)
+            drawMesh(cloudMesh, cloudR, cloudG, cloudB, emissive = 0.25f)
+        }
+
+        // 3. Draw Terrain & Animated Specular Water
         GLES20.glDisable(GLES20.GL_CULL_FACE)
-        // Ocean
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, 0f, -0.35f, 0f)
-        drawMesh(oceanMesh, 0.012f, 0.412f, 0.631f, 0.05f)
+        drawMesh(oceanMesh, 0.015f, 0.425f, 0.660f, emissive = 0.06f, specular = 0.85f, detail = 0.04f)
 
-        // Island Grass Disc
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, 0f, -0.6f, 0f)
-        drawMesh(islandMesh, 0.141f, 0.333f, 0.165f)
+        drawMesh(islandMesh, 0.145f, 0.365f, 0.175f, detail = 0.09f)
 
-        // Sandy Beach Rim
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, 0f, 0.02f, 0f)
-        drawMesh(beachRingMesh, 0.839f, 0.722f, 0.486f)
+        drawMesh(beachRingMesh, 0.855f, 0.742f, 0.510f, detail = 0.07f)
 
-        // Pond Shore & Glowing Water
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, SurvivalGameEngine.POND_X, 0.03f, SurvivalGameEngine.POND_Z)
-        drawMesh(pondShoreMesh, 0.839f, 0.722f, 0.486f)
+        drawMesh(pondShoreMesh, 0.855f, 0.742f, 0.510f, detail = 0.06f)
 
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, SurvivalGameEngine.POND_X, SurvivalGameEngine.POND_Y, SurvivalGameEngine.POND_Z)
-        drawMesh(pondWaterMesh, 0.055f, 0.647f, 0.914f, 0.32f)
+        drawMesh(pondWaterMesh, 0.065f, 0.675f, 0.935f, emissive = 0.34f, specular = 0.95f, detail = 0.05f)
         GLES20.glEnable(GLES20.GL_CULL_FACE)
 
-        // 4. Draw Trees
+        // 4. Draw Trees (distance + frustum culled)
+        val maxDrawDistSq = 115f * 115f
         for (t in engine.trees) {
             if (t.hp <= 0f) continue
-            // Trunk
+            if (!isVisibleRange(t.x, t.z, camX, camZ, fwdX, fwdZ, maxDrawDistSq)) continue
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, t.x, 1.6f * t.scale, t.z)
             Matrix.scaleM(modelMatrix, 0, t.scale, t.scale, t.scale)
-            drawMesh(trunkMesh, 0.361f, 0.227f, 0.129f)
+            drawMesh(trunkMesh, 0.380f, 0.238f, 0.135f, detail = 0.08f)
 
             if (t.isPine) {
                 for (tier in 0..2) {
@@ -311,45 +368,40 @@ class WildSurvivalRenderer(
                         1 -> pineCone1
                         else -> pineCone2
                     }
-                    drawMesh(cone, 0.078f, 0.325f, 0.176f)
+                    drawMesh(cone, 0.082f, 0.355f, 0.190f, detail = 0.07f)
                 }
             } else {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, t.x, 4.0f * t.scale, t.z)
                 Matrix.scaleM(modelMatrix, 0, t.scale, t.scale, t.scale)
-                drawMesh(oakCrownMesh, 0.086f, 0.396f, 0.204f)
+                drawMesh(oakCrownMesh, 0.092f, 0.425f, 0.215f, detail = 0.08f)
             }
         }
 
-        // 5. Draw Rocks
+        // 5. Draw Rocks (distance + frustum culled)
         for (r in engine.rocks) {
             if (r.hp <= 0f) continue
+            if (!isVisibleRange(r.x, r.z, camX, camZ, fwdX, fwdZ, maxDrawDistSq)) continue
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, r.x, 0.65f * r.scale, r.z)
             Matrix.rotateM(modelMatrix, 0, Math.toDegrees(r.rotY.toDouble()).toFloat(), 0f, 1f, 0f)
             Matrix.rotateM(modelMatrix, 0, Math.toDegrees(r.rotX.toDouble()).toFloat(), 1f, 0f, 0f)
             Matrix.scaleM(modelMatrix, 0, r.scale, r.scale, r.scale)
-            drawMesh(rockMesh, 0.420f, 0.447f, 0.502f)
+            drawMesh(rockMesh, 0.440f, 0.468f, 0.525f, specular = 0.18f, detail = 0.11f)
         }
 
-        // 6. Draw Berry Bushes
-        val berryOffsets = arrayOf(
-            floatArrayOf(0.5f, 0.8f, 0.4f),
-            floatArrayOf(-0.5f, 0.75f, 0.45f),
-            floatArrayOf(0.1f, 1.1f, -0.5f),
-            floatArrayOf(-0.35f, 0.9f, -0.45f),
-            floatArrayOf(0.4f, 0.6f, -0.4f)
-        )
+        // 6. Draw Berry Bushes (distance + frustum culled)
         for (b in engine.bushes) {
+            if (!isVisibleRange(b.x, b.z, camX, camZ, fwdX, fwdZ, maxDrawDistSq)) continue
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, b.x, 0.65f, b.z)
-            drawMesh(bushMesh, 0.082f, 0.502f, 0.239f)
+            drawMesh(bushMesh, 0.088f, 0.525f, 0.248f, detail = 0.08f)
 
             if (b.hasBerries) {
                 for (off in berryOffsets) {
                     Matrix.setIdentityM(modelMatrix, 0)
                     Matrix.translateM(modelMatrix, 0, b.x + off[0], off[1], b.z + off[2])
-                    drawMesh(berryMesh, 0.957f, 0.247f, 0.369f, 0.28f)
+                    drawMesh(berryMesh, 0.965f, 0.255f, 0.375f, emissive = 0.30f, specular = 0.45f)
                 }
             }
         }
@@ -361,7 +413,7 @@ class WildSurvivalRenderer(
                 val a = (s / 8f) * 2f * PI.toFloat()
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, cf.x + cos(a) * 0.85f, 0.12f, cf.z + sin(a) * 0.85f)
-                drawMesh(fireStoneMesh, 0.341f, 0.325f, 0.306f)
+                drawMesh(fireStoneMesh, 0.341f, 0.325f, 0.306f, detail = 0.08f)
             }
             for (l in 0 until 3) {
                 Matrix.setIdentityM(modelMatrix, 0)
@@ -375,59 +427,48 @@ class WildSurvivalRenderer(
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, cf.x, 0.48f, cf.z)
             Matrix.scaleM(modelMatrix, 0, flicker, flickerH, flicker)
-            drawMesh(fireFlameMesh, 0.976f, 0.451f, 0.086f, 0.85f)
+            drawMesh(fireFlameMesh, 0.985f, 0.480f, 0.095f, emissive = 0.92f)
         }
 
         // 8. Draw Nighttime Wolves
-        val legPositions = arrayOf(
-            floatArrayOf(-0.22f, 0.22f, 0.45f, 1f),
-            floatArrayOf(0.22f, 0.22f, 0.45f, -1f),
-            floatArrayOf(-0.22f, 0.22f, -0.45f, -1f),
-            floatArrayOf(0.22f, 0.22f, -0.45f, 1f)
-        )
         for (w in engine.wolves) {
             val yawDeg = Math.toDegrees(w.yaw.toDouble()).toFloat()
 
-            // Body
             setWolfTransform(w.x, 0.65f, w.z, yawDeg, 0f, 0f, 0f)
-            drawMesh(wolfBodyMesh, 0.094f, 0.094f, 0.106f)
+            drawMesh(wolfBodyMesh, 0.115f, 0.115f, 0.130f, detail = 0.06f)
 
-            // Head
             setWolfTransform(w.x, 0.92f, w.z, yawDeg, 0f, 0f, 0.75f)
-            drawMesh(wolfHeadMesh, 0.094f, 0.094f, 0.106f)
+            drawMesh(wolfHeadMesh, 0.115f, 0.115f, 0.130f)
 
-            // Snout
             setWolfTransform(w.x, 0.82f, w.z, yawDeg, 0f, 0f, 1.12f)
-            drawMesh(wolfSnoutMesh, 0.094f, 0.094f, 0.106f)
+            drawMesh(wolfSnoutMesh, 0.135f, 0.135f, 0.150f)
 
-            // Ears
             setWolfTransform(w.x, 1.25f, w.z, yawDeg, -0.16f, 0f, 0.68f)
-            drawMesh(wolfEarMesh, 0.094f, 0.094f, 0.106f)
+            drawMesh(wolfEarMesh, 0.115f, 0.115f, 0.130f)
             setWolfTransform(w.x, 1.25f, w.z, yawDeg, 0.16f, 0f, 0.68f)
-            drawMesh(wolfEarMesh, 0.094f, 0.094f, 0.106f)
+            drawMesh(wolfEarMesh, 0.115f, 0.115f, 0.130f)
 
-            // Glowing Red Eyes
             setWolfTransform(w.x, 0.98f, w.z, yawDeg, -0.14f, 0f, 1.03f)
-            drawMesh(wolfEyeMesh, 0.937f, 0.267f, 0.267f, 0.95f)
+            drawMesh(wolfEyeMesh, 0.950f, 0.270f, 0.270f, emissive = 1.0f)
             setWolfTransform(w.x, 0.98f, w.z, yawDeg, 0.14f, 0f, 1.03f)
-            drawMesh(wolfEyeMesh, 0.937f, 0.267f, 0.267f, 0.95f)
+            drawMesh(wolfEyeMesh, 0.950f, 0.270f, 0.270f, emissive = 1.0f)
 
-            // 4 Animated Legs
             for (lp in legPositions) {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, w.x, 0f, w.z)
                 Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
                 Matrix.translateM(modelMatrix, 0, lp[0], lp[1], lp[2])
                 Matrix.rotateM(modelMatrix, 0, sin(w.walkAnim) * 24f * lp[3], 1f, 0f, 0f)
-                drawMesh(wolfLegMesh, 0.094f, 0.094f, 0.106f)
+                drawMesh(wolfLegMesh, 0.115f, 0.115f, 0.130f)
             }
         }
 
         // 9. Draw 3D Particles
         for (p in engine.particles) {
+            if (!isVisibleRange(p.x, p.z, camX, camZ, fwdX, fwdZ, 64f * 64f)) continue
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, p.x, p.y, p.z)
-            drawMesh(particleMesh, p.r, p.g, p.b, 0.3f)
+            drawMesh(particleMesh, p.r, p.g, p.b, emissive = 0.35f)
         }
 
         // 10. Draw First-Person Viewmodel (Camera Space)
@@ -439,73 +480,69 @@ class WildSurvivalRenderer(
     private fun renderViewmodelLocked(bobX: Float, bobY: Float) {
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
 
-        // Camera-space VP is just Projection Matrix (View = Identity)
         System.arraycopy(projMatrix, 0, vpMatrix, 0, 16)
         GLES20.glUniform3f(worldShader.uCameraPos, 0f, 0f, 0f)
         GLES20.glUniform1f(worldShader.uFogDensity, 0f)
 
-        val baseArm = FloatArray(16)
-        Matrix.setIdentityM(baseArm, 0)
-        Matrix.translateM(baseArm, 0, 0.36f + bobX * 0.6f, -0.32f + abs(bobY) * 0.6f, -0.45f)
+        Matrix.setIdentityM(baseArmMatrix, 0)
+        Matrix.translateM(baseArmMatrix, 0, 0.36f + bobX * 0.6f, -0.32f + abs(bobY) * 0.6f, -0.45f)
 
         if (engine.swingTimer > 0f) {
             val swingProgress = 1f - (engine.swingTimer / 0.24f).coerceIn(0f, 1f)
             val swingArc = sin(swingProgress * PI.toFloat())
-            Matrix.translateM(baseArm, 0, 0f, 0f, -swingArc * 0.22f)
-            Matrix.rotateM(baseArm, 0, Math.toDegrees((swingArc * 0.35f).toDouble()).toFloat(), 0f, 1f, 0f)
-            Matrix.rotateM(baseArm, 0, Math.toDegrees((-swingArc * 1.15f).toDouble()).toFloat(), 1f, 0f, 0f)
+            Matrix.translateM(baseArmMatrix, 0, 0f, 0f, -swingArc * 0.22f)
+            Matrix.rotateM(baseArmMatrix, 0, Math.toDegrees((swingArc * 0.35f).toDouble()).toFloat(), 0f, 1f, 0f)
+            Matrix.rotateM(baseArmMatrix, 0, Math.toDegrees((-swingArc * 1.15f).toDouble()).toFloat(), 1f, 0f, 0f)
         }
 
-        // Forearm (blue sleeve)
-        System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+        System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
         Matrix.translateM(modelMatrix, 0, 0f, -0.02f, 0.18f)
         drawMesh(forearmMesh, 0.114f, 0.306f, 0.847f)
 
-        // Fist (skin)
-        System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+        System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
         Matrix.translateM(modelMatrix, 0, 0f, 0f, -0.08f)
         drawMesh(fistMesh, 0.851f, 0.608f, 0.400f)
 
         when {
             engine.selectedSlot == 1 && engine.hasAxe -> {
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.16f, -0.14f)
                 Matrix.rotateM(modelMatrix, 0, 27f, 1f, 0f, 0f)
                 drawMesh(axeHandleMesh, 0.471f, 0.208f, 0.059f)
 
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.42f, -0.25f)
                 Matrix.rotateM(modelMatrix, 0, 27f, 1f, 0f, 0f)
-                drawMesh(axeBladeMesh, 0.612f, 0.639f, 0.686f)
+                drawMesh(axeBladeMesh, 0.680f, 0.710f, 0.760f, specular = 0.65f)
             }
             engine.selectedSlot == 2 && engine.hasSpear -> {
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.02f, -0.35f)
                 Matrix.rotateM(modelMatrix, 0, 86.4f, 1f, 0f, 0f)
                 drawMesh(spearShaftMesh, 0.471f, 0.208f, 0.059f)
 
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.05f, -1.08f)
                 Matrix.rotateM(modelMatrix, 0, -93.6f, 1f, 0f, 0f)
-                drawMesh(spearTipMesh, 0.612f, 0.639f, 0.686f)
+                drawMesh(spearTipMesh, 0.680f, 0.710f, 0.760f, specular = 0.70f)
             }
             engine.selectedSlot == 3 && engine.torches > 0 -> {
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.14f, -0.12f)
                 Matrix.rotateM(modelMatrix, 0, 21.6f, 1f, 0f, 0f)
                 drawMesh(torchStickMesh, 0.471f, 0.208f, 0.059f)
 
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.41f, -0.22f)
-                drawMesh(torchHeadMesh, 1.0f, 0.596f, 0.0f, 0.9f)
+                drawMesh(torchHeadMesh, 1.0f, 0.596f, 0.0f, emissive = 0.95f)
             }
             engine.selectedSlot == 4 && engine.berries > 0 -> {
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.08f, -0.12f)
-                drawMesh(heldBerryMesh, 0.957f, 0.247f, 0.369f, 0.2f)
+                drawMesh(heldBerryMesh, 0.957f, 0.247f, 0.369f, emissive = 0.22f, specular = 0.45f)
             }
             engine.selectedSlot == 5 && engine.bandages > 0 -> {
-                System.arraycopy(baseArm, 0, modelMatrix, 0, 16)
+                System.arraycopy(baseArmMatrix, 0, modelMatrix, 0, 16)
                 Matrix.translateM(modelMatrix, 0, 0f, 0.08f, -0.12f)
                 Matrix.rotateM(modelMatrix, 0, 90f, 0f, 0f, 1f)
                 drawMesh(heldBandageMesh, 0.655f, 0.953f, 0.816f)
@@ -524,12 +561,22 @@ class WildSurvivalRenderer(
         Matrix.translateM(modelMatrix, 0, ox, wy + oy, oz)
     }
 
-    private fun drawMesh(mesh: GpuMesh, r: Float, g: Float, b: Float, emissive: Float = 0f) {
+    private fun drawMesh(
+        mesh: GpuMesh,
+        r: Float,
+        g: Float,
+        b: Float,
+        emissive: Float = 0f,
+        specular: Float = 0f,
+        detail: Float = 0f
+    ) {
         Matrix.multiplyMM(mvpMatrix, 0, vpMatrix, 0, modelMatrix, 0)
         GLES20.glUniformMatrix4fv(worldShader.uMVPMatrix, 1, false, mvpMatrix, 0)
         GLES20.glUniformMatrix4fv(worldShader.uModelMatrix, 1, false, modelMatrix, 0)
         GLES20.glUniform3f(worldShader.uColor, r, g, b)
         GLES20.glUniform1f(worldShader.uEmissive, emissive)
+        if (worldShader.uSpecular >= 0) GLES20.glUniform1f(worldShader.uSpecular, specular)
+        if (worldShader.uDetailScale >= 0) GLES20.glUniform1f(worldShader.uDetailScale, detail)
         mesh.draw(worldShader.aPosition, worldShader.aNormal)
     }
 }

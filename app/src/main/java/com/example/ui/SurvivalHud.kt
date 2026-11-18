@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,10 +27,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -59,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.game.HudSnapshot
 import com.example.game.SurvivalStatus
+import com.example.game.SurvivalTask
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.AmberOrange
 import com.example.ui.theme.FlameOrange
@@ -183,20 +187,21 @@ fun SurvivalHud(
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
             val isPortraitOrNarrow = maxHeight > maxWidth || maxWidth < 500.dp
-            val isCompactLandscape = !isPortraitOrNarrow && maxWidth < 840.dp
+            val isCompactLandscape = !isPortraitOrNarrow && maxWidth < 820.dp
+            val useTwoRowTopBar = isPortraitOrNarrow || isCompactLandscape
 
             // TOP BAR(S)
-            if (isPortraitOrNarrow) {
+            if (useTwoRowTopBar) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.TopCenter),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
                         VitalsCard(
@@ -204,14 +209,15 @@ fun SurvivalHud(
                             survivalStatus = survivalStatus,
                             playerHunger = playerHunger,
                             playerThirst = playerThirst,
-                            modifier = Modifier.weight(1.05f)
+                            modifier = Modifier.widthIn(
+                                max = if (isPortraitOrNarrow) 190.dp else 230.dp
+                            ).weight(1f, fill = false)
                         )
                         ClockCompassCard(
                             hud = hud,
                             compact = true,
                             onToggleMute = onToggleMute,
-                            onTogglePause = onTogglePause,
-                            modifier = Modifier.weight(0.95f)
+                            onTogglePause = onTogglePause
                         )
                     }
                     ResourceAndCraftBar(
@@ -234,17 +240,17 @@ fun SurvivalHud(
                         survivalStatus = survivalStatus,
                         playerHunger = playerHunger,
                         playerThirst = playerThirst,
-                        modifier = Modifier.width(if (isCompactLandscape) 190.dp else 245.dp)
+                        modifier = Modifier.width(245.dp)
                     )
                     ResourceAndCraftBar(
                         hud = hud,
-                        compact = isCompactLandscape,
+                        compact = false,
                         onOpenCrafting = onOpenCrafting,
                         onRefuelCampfire = onRefuelCampfire
                     )
                     ClockCompassCard(
                         hud = hud,
-                        compact = isCompactLandscape,
+                        compact = false,
                         onToggleMute = onToggleMute,
                         onTogglePause = onTogglePause
                     )
@@ -258,7 +264,7 @@ fun SurvivalHud(
                 exit = fadeOut(tween(200)),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = if (isPortraitOrNarrow) 118.dp else 66.dp)
+                    .padding(top = if (useTwoRowTopBar) 120.dp else 66.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -278,21 +284,36 @@ fun SurvivalHud(
                 }
             }
 
-            // TOP-RIGHT CORNER (below Clock/Resources): Circular Navigation Minimap
-            val minimapSize = if (isPortraitOrNarrow || isCompactLandscape) 86.dp else 98.dp
+            // TOP-LEFT (below Vitals & CraftBar): Auto-Generated Active Survival Task Card
+            hud.activeTask?.let { task ->
+                ActiveTaskCard(
+                    task = task,
+                    completedCount = hud.completedTasksCount,
+                    compact = useTwoRowTopBar,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(
+                            top = if (useTwoRowTopBar) 122.dp else 80.dp,
+                            start = 2.dp
+                        )
+                )
+            }
+
+            // TOP-RIGHT CORNER (below Clock & CraftBar): Circular Navigation Minimap
+            val minimapSize = if (isPortraitOrNarrow || isCompactLandscape) 78.dp else 96.dp
             MinimapOverlay(
                 hud = hud,
                 sizeDp = minimapSize,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(
-                        top = if (isPortraitOrNarrow) 124.dp else 54.dp,
+                        top = if (useTwoRowTopBar) 122.dp else 54.dp,
                         end = 2.dp
                     )
             )
 
             // BOTTOM-LEFT: Virtual Touch Joystick
-            val joySize = if (isPortraitOrNarrow) 104.dp else if (isCompactLandscape) 104.dp else 116.dp
+            val joySize = if (isPortraitOrNarrow) 100.dp else if (isCompactLandscape) 100.dp else 116.dp
             VirtualJoystick(
                 zoneSizeDp = joySize,
                 onMove = onJoystickMove,
@@ -524,7 +545,7 @@ private fun ResourceAndCraftBar(
                 .clip(RoundedCornerShape(14.dp))
                 .background(GlassHudBg)
                 .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
-                .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = 5.dp),
+                .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp)
         ) {
@@ -540,26 +561,34 @@ private fun ResourceAndCraftBar(
                     .background(Color.White.copy(alpha = 0.18f))
             )
 
-            Row(
+            Surface(
+                onClick = onOpenCrafting,
+                shape = RoundedCornerShape(10.dp),
+                color = Color.Transparent,
                 modifier = Modifier
                     .minimumInteractiveComponentSize()
+                    .defaultMinSize(minWidth = 48.dp, minHeight = 38.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Brush.horizontalGradient(listOf(AmberOrange, FlameOrange)))
-                    .border(1.dp, AmberGold.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
-                    .clickable(onClick = onOpenCrafting)
-                    .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = 5.dp)
-                    .testTag("crafting_book_button"),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .border(1.dp, AmberGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                    .testTag("crafting_book_button")
             ) {
-                Text("📖", fontSize = 12.sp)
-                Text(
-                    text = stringResource(R.string.crafting_book_btn),
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontSize = if (compact) 10.sp else 11.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = if (compact) 10.dp else 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("📖", fontSize = 13.sp)
+                    Text(
+                        text = stringResource(R.string.crafting_book_btn),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontSize = if (compact) 10.sp else 11.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
 
@@ -584,6 +613,78 @@ private fun ResourceAndCraftBar(
                     fontWeight = FontWeight.ExtraBold
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ActiveTaskCard(
+    task: SurvivalTask,
+    completedCount: Int,
+    compact: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val progressFrac = (task.progress.toFloat() / task.target.coerceAtLeast(1)).coerceIn(0f, 1f)
+    Column(
+        modifier = modifier
+            .widthIn(min = if (compact) 150.dp else 180.dp, max = if (compact) 210.dp else 240.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(GlassHudBg)
+            .border(1.dp, AmberGold.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            )
+            .padding(horizontal = 9.dp, vertical = 6.dp)
+            .testTag("active_task_card"),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "🎯 මෙහෙයුම #${task.id} ($completedCount ✓)",
+                color = AmberGold,
+                fontSize = 8.5.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                text = "${task.progress}/${task.target}",
+                color = Color(0xFF6EE7B7),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(task.icon, fontSize = 12.sp)
+            Text(
+                text = task.titleSi,
+                color = Color.White,
+                fontSize = if (compact) 9.5.sp else 10.5.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF030712))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(progressFrac)
+                    .background(Brush.horizontalGradient(listOf(ForestEmerald, AmberGold)))
+            )
         }
     }
 }
@@ -886,9 +987,9 @@ private fun formatClockInfo(timeOfDay: Float): ClockInfo {
     val totalMins = (((timeOfDay * 24f) - totalHours) * 60f).toInt().coerceIn(0, 59)
     val clockStr = "%02d:%02d".format(totalHours, totalMins)
     return when {
-        timeOfDay in 0.50f..0.649f -> ClockInfo("🌅", "සැන්දෑව", clockStr)
-        timeOfDay in 0.65f..0.90f -> ClockInfo("🌙", "රාත්‍රිය", clockStr)
-        timeOfDay > 0.90f -> ClockInfo("🌤️", "උදෑසන", clockStr)
+        timeOfDay in 0.62f..0.72f -> ClockInfo("🌅", "සැන්දෑව", clockStr)
+        timeOfDay in 0.721f..0.92f -> ClockInfo("🌙", "රාත්‍රිය", clockStr)
+        timeOfDay > 0.92f -> ClockInfo("🌤️", "උදෑසන", clockStr)
         else -> ClockInfo("☀️", "දහවල්", clockStr)
     }
 }

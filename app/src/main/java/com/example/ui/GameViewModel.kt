@@ -20,8 +20,8 @@ import kotlinx.coroutines.launch
 
 class GameViewModel : ViewModel() {
     companion object {
-        const val HUNGER_DECAY_PER_SEC = 1.15f
-        const val THIRST_DECAY_PER_SEC = 1.55f
+        const val HUNGER_DECAY_PER_SEC = 0.85f
+        const val THIRST_DECAY_PER_SEC = 1.15f
     }
 
     val soundSynthesizer = SoundSynthesizer()

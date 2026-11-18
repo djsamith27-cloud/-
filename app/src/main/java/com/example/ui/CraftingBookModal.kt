@@ -7,6 +7,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -74,7 +75,7 @@ fun CraftingBookModal(
         hud.currentCraftTab == CraftCategory.ALL || it.category == hud.currentCraftTab
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.78f))
@@ -84,18 +85,20 @@ fun CraftingBookModal(
                 onClick = {}
             )
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
+        val isNarrow = maxWidth < 600.dp
+
         Column(
             modifier = Modifier
                 .widthIn(max = 880.dp)
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
-                .clip(RoundedCornerShape(24.dp))
+                .fillMaxHeight(0.94f)
+                .clip(RoundedCornerShape(22.dp))
                 .background(Brush.linearGradient(listOf(WoodBookLight, WoodBookDark)))
-                .border(2.5.dp, WoodBookBorder, RoundedCornerShape(24.dp))
-                .padding(16.dp)
+                .border(2.5.dp, WoodBookBorder, RoundedCornerShape(22.dp))
+                .padding(if (isNarrow) 12.dp else 16.dp)
         ) {
             // Header
             Row(
@@ -105,40 +108,44 @@ fun CraftingBookModal(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(text = "📖", fontSize = 26.sp)
+                    Text(text = "📖", fontSize = if (isNarrow) 22.sp else 26.sp)
                     Column {
                         Text(
                             text = stringResource(R.string.crafting_book_title),
                             style = MaterialTheme.typography.titleMedium,
+                            fontSize = if (isNarrow) 13.sp else 15.sp,
                             color = AmberGold,
                             fontWeight = FontWeight.ExtraBold
                         )
-                        Text(
-                            text = stringResource(R.string.crafting_book_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFFEF3C7).copy(alpha = 0.75f)
-                        )
+                        if (!isNarrow) {
+                            Text(
+                                text = stringResource(R.string.crafting_book_subtitle),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFFEF3C7).copy(alpha = 0.75f)
+                            )
+                        }
                     }
                 }
 
-                // Live Resource Summary
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 10.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color.Black.copy(alpha = 0.45f))
-                        .border(1.dp, AmberOrange.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("🪵 ${hud.wood}", color = AmberGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("🪨 ${hud.stone}", color = Color(0xFFD6D3D1), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("🍒 ${hud.berries}", color = Color(0xFFFDA4AF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("🥩 ${hud.rawMeat}", color = Color(0xFFFCA5A5), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                if (!isNarrow) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 10.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .border(1.dp, AmberOrange.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🪵 ${hud.wood}", color = AmberGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("🪨 ${hud.stone}", color = Color(0xFFD6D3D1), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("🍒 ${hud.berries}", color = Color(0xFFFDA4AF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("🥩 ${hud.rawMeat}", color = Color(0xFFFCA5A5), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Box(
@@ -152,6 +159,25 @@ fun CraftingBookModal(
                     contentAlignment = Alignment.Center
                 ) {
                     Text("✕", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                }
+            }
+
+            if (isNarrow) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black.copy(alpha = 0.45f))
+                        .border(1.dp, AmberOrange.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🪵 ${hud.wood}", color = AmberGold, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    Text("🪨 ${hud.stone}", color = Color(0xFFD6D3D1), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    Text("🍒 ${hud.berries}", color = Color(0xFFFDA4AF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    Text("🥩 ${hud.rawMeat}", color = Color(0xFFFCA5A5), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                 }
             }
 

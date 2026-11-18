@@ -1,0 +1,13 @@
+# Gradle & Build Outputs
+.gradle/
+.kotlin/
+build/
+app/build/
+.build-outputs/
+
+# IDE & Local Environment
+.idea/
+*.iml
+local.properties
+.DS_Store
+debug.keystore

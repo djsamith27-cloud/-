@@ -142,12 +142,12 @@
 
     <!-- Center Crosshair & Prompt -->
     <div id="crosshair" class="hidden"></div>
-    <div id="target-prompt" class="fixed top-[54%] left-1/2 -translate-x-1/2 glass-hud px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold text-amber-300 pointer-events-none z-15 hidden whitespace-nowrap">
+    <div id="target-prompt" class="fixed top-[54%] left-1/2 -translate-x-1/2 glass-hud px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold text-amber-300 pointer-events-none z-[15] hidden whitespace-nowrap">
         ගස කපන්න (Chop Tree)
     </div>
 
     <!-- Top HUD -->
-    <div id="hud-top" class="fixed top-2 left-2 right-2 flex flex-wrap justify-between items-start gap-2 pointer-events-none z-15 hidden" style="padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);">
+    <div id="hud-top" class="fixed top-2 left-2 right-2 flex flex-wrap justify-between items-start gap-2 pointer-events-none z-[15] hidden" style="padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);">
         <!-- Vitals -->
         <div class="glass-hud rounded-2xl p-2 grid grid-cols-2 gap-x-2.5 gap-y-1 w-48 sm:w-64 pointer-events-auto">
             <div>
@@ -196,11 +196,11 @@
                 <span class="text-rose-200">🍒 <span id="res-berries">2</span></span>
                 <span class="text-red-300">🥩 <span id="res-meat">0</span></span>
                 <span class="w-px h-4 bg-white/20"></span>
-                <button id="btn-craft-book" class="btn-press bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white px-2.5 py-1 rounded-lg text-[11px] font-extrabold shadow flex items-center gap-1">
+                <button id="btn-craft-book" type="button" style="touch-action: manipulation;" class="btn-press bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-extrabold shadow flex items-center gap-1 cursor-pointer">
                     📖 නිර්මාණ පොත
                 </button>
             </div>
-            <button id="btn-refuel-fire" class="hidden btn-press bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-extrabold border border-amber-300 shadow-lg">
+            <button id="btn-refuel-fire" type="button" class="hidden btn-press bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-extrabold border border-amber-300 shadow-lg">
                 🔥 දර දමන්න (🪵 2)
             </button>
         </div>
@@ -215,19 +215,34 @@
             <div class="bg-black/40 border border-white/15 rounded-lg px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
                 🧭<span id="compass-dir">N</span>
             </div>
-            <button id="btn-mute" class="btn-press w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-xs flex items-center justify-center" title="Sound">🔊</button>
-            <button id="btn-pause" class="btn-press w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-white font-bold flex items-center justify-center" title="Pause">⏸</button>
+            <button id="btn-mute" type="button" class="btn-press w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-xs flex items-center justify-center" title="Sound">🔊</button>
+            <button id="btn-pause" type="button" class="btn-press w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-white font-bold flex items-center justify-center" title="Pause">⏸</button>
         </div>
     </div>
 
     <!-- Floating Toast -->
-    <div id="toast-box" class="fixed top-20 left-1/2 -translate-x-1/2 glass-hud px-4 py-1.5 rounded-full text-xs font-bold text-emerald-200 border border-emerald-400/40 pointer-events-none z-25 opacity-0 transition-opacity duration-200 whitespace-nowrap"></div>
+    <div id="toast-box" class="fixed top-24 left-1/2 -translate-x-1/2 glass-hud px-4 py-1.5 rounded-full text-xs font-bold text-emerald-200 border border-emerald-400/40 pointer-events-none z-[25] opacity-0 transition-opacity duration-200 whitespace-nowrap"></div>
 
     <!-- Bottom Controls & Hotbar (Visible while PLAYING) -->
     <div id="hud-controls" class="hidden">
+        <!-- Top-Left Auto-Generated Task Card -->
+        <div id="task-card" class="fixed left-2 glass-hud rounded-xl px-2.5 py-1.5 border border-amber-400/35 w-44 sm:w-52 z-20 pointer-events-auto" style="top: calc(108px + env(safe-area-inset-top, 0px));">
+            <div class="flex justify-between items-center text-[9px] font-extrabold">
+                <span id="task-header" class="text-amber-300">🎯 මෙහෙයුම #1 (0 ✓)</span>
+                <span id="task-progress-txt" class="text-emerald-300">0/4</span>
+            </div>
+            <div class="flex items-center gap-1.5 my-0.5">
+                <span id="task-icon" class="text-xs">🪓</span>
+                <span id="task-title" class="text-[10px] font-bold text-white truncate">ගස් කපා දර 4ක් එකතු කරන්න</span>
+            </div>
+            <div class="w-full h-1 bg-gray-950 rounded-full overflow-hidden">
+                <div id="task-bar" class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-200" style="width: 0%;"></div>
+            </div>
+        </div>
+
         <!-- Top-Right Circular Minimap -->
-        <div id="minimap-wrap" class="fixed top-16 right-3 w-22 h-22 sm:w-24 sm:h-24 rounded-full glass-hud border border-white/30 overflow-hidden z-20 pointer-events-auto" style="width:92px;height:92px;top:calc(54px + env(safe-area-inset-top, 0px));right:max(12px, env(safe-area-inset-right, 12px));">
-            <canvas id="minimap-canvas" width="184" height="184" class="w-full h-full block"></canvas>
+        <div id="minimap-wrap" class="fixed right-3 rounded-full glass-hud border border-white/30 overflow-hidden z-20 pointer-events-auto" style="width:84px;height:84px;top:calc(96px + env(safe-area-inset-top, 0px));right:max(12px, env(safe-area-inset-right, 12px));">
+            <canvas id="minimap-canvas" width="168" height="168" class="w-full h-full block"></canvas>
             <span class="absolute top-0.5 left-1/2 -translate-x-1/2 text-[9px] font-extrabold text-amber-300 pointer-events-none">N</span>
         </div>
 
@@ -322,7 +337,7 @@
     </div>
 
     <!-- Crafting Book Modal -->
-    <div id="crafting-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-45 hidden items-center justify-center p-3 sm:p-6">
+    <div id="crafting-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[45] hidden items-center justify-center p-3 sm:p-6">
         <div class="craft-book-modal rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col p-4 sm:p-5">
             <div class="flex items-center justify-between gap-2 pb-3 border-b border-amber-700/40">
                 <div class="flex items-center gap-2.5">
@@ -370,11 +385,11 @@
 <script>
 (() => {
     const ISLAND_RADIUS = 88;
-    const DAY_LENGTH_SEC = 85;
+    const DAY_LENGTH_SEC = 180;
     const POND_X = -14, POND_Z = -12, POND_Y = 0.06, POND_RADIUS = 10.5;
     const EYE_HEIGHT = 1.75;
-    const HUNGER_DECAY_PER_SEC = 1.15;
-    const THIRST_DECAY_PER_SEC = 1.55;
+    const HUNGER_DECAY_PER_SEC = 0.85;
+    const THIRST_DECAY_PER_SEC = 1.15;
 
     const RECIPES = [
         { id: "axe", category: "TOOLS", icon: "🪓", nameSi: "ගල් පොරව", nameEn: "Stone Axe", desc: "ගස් කැපීම සහ ගල් කැඩීම වේගවත් කරයි. (Hotbar [2])", cost: { wood: 3, stone: 2 }, oneTime: true },
@@ -447,20 +462,50 @@
     scene.add(camera);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
-    const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x1e3f20, 0.85);
+    const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x1e3f20, 0.9);
     scene.add(hemiLight);
-    const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.1);
+    const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
     sunLight.position.set(40, 70, 30);
     scene.add(sunLight);
 
-    // Terrain & Ocean
+    // Celestial Sun & Moon + Drifting Clouds
+    const sunOrb = new THREE.Mesh(
+        new THREE.SphereGeometry(5.5, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xfde047 })
+    );
+    scene.add(sunOrb);
+    const moonOrb = new THREE.Mesh(
+        new THREE.SphereGeometry(4.2, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xe2e8f0 })
+    );
+    scene.add(moonOrb);
+
+    const cloudGroup = new THREE.Group();
+    const cloudMat = new THREE.MeshLambertMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.85 });
+    const clouds = [];
+    for (let i = 0; i < 6; i++) {
+        const cg = new THREE.Group();
+        const puff1 = new THREE.Mesh(new THREE.DodecahedronGeometry(3.5), cloudMat);
+        const puff2 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.6), cloudMat);
+        puff2.position.set(3.2, -0.4, 0.4);
+        const puff3 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4), cloudMat);
+        puff3.position.set(-3.0, -0.5, -0.3);
+        cg.add(puff1, puff2, puff3);
+        cg.position.set(-80 + i * 32, 34 + (i % 3) * 5, -45 + (i % 2) * 55);
+        cg.scale.set(1.3, 0.55, 0.9);
+        cloudGroup.add(cg);
+        clouds.push(cg);
+    }
+    scene.add(cloudGroup);
+
+    // Terrain & Ocean (Specular Water Shimmer)
     const ocean = new THREE.Mesh(
         new THREE.PlaneGeometry(560, 560),
-        new THREE.MeshLambertMaterial({ color: 0x0369a1 })
+        new THREE.MeshPhongMaterial({ color: 0x0284c7, specular: 0xbae6fd, shininess: 60 })
     );
     ocean.rotation.x = -Math.PI / 2;
     ocean.position.y = -0.35;
@@ -491,7 +536,7 @@
 
     const pondWater = new THREE.Mesh(
         new THREE.CircleGeometry(POND_RADIUS, 32),
-        new THREE.MeshLambertMaterial({ color: 0x0ea5e9, emissive: 0x0369a1, emissiveIntensity: 0.35 })
+        new THREE.MeshPhongMaterial({ color: 0x0ea5e9, emissive: 0x0369a1, emissiveIntensity: 0.35, specular: 0xe0f2fe, shininess: 85 })
     );
     pondWater.rotation.x = -Math.PI / 2;
     pondWater.position.set(POND_X, POND_Y, POND_Z);
@@ -562,6 +607,66 @@
     let swingTimer = 0, swingCooldown = 0, bobTimer = 0, stepTimer = 0;
     let joyX = 0, joyY = 0, sprintToggle = false;
     const keys = {};
+
+    // Auto-generated survival tasks
+    let activeTask = null;
+    let completedTasksCount = 0;
+    let taskSerial = 1;
+    let lastTaskType = null;
+
+    function createTask(type) {
+        lastTaskType = type;
+        const map = {
+            CHOP_WOOD: { type, icon: "🪓", titleSi: "ගස් කපා දර 4ක් එකතු කරන්න", target: 4, reward: 120 },
+            MINE_STONE: { type, icon: "⛏️", titleSi: "ගල් 3ක් කඩා එකතු කරන්න", target: 3, reward: 130 },
+            PICK_BERRIES: { type, icon: "🍒", titleSi: "වල් පලතුරු 4ක් කඩන්න", target: 4, reward: 110 },
+            CRAFT_AXE: { type, icon: "🔨", titleSi: "ගල් පොරවක් නිර්මාණය කරන්න", target: 1, reward: 180 },
+            DRINK_WATER: { type, icon: "💧", titleSi: "පොකුණෙන් ජලය පානය කරන්න", target: 1, reward: 100 },
+            CRAFT_SPEAR: { type, icon: "🔱", titleSi: "දඩයම් හෙල්ලක් සාදන්න", target: 1, reward: 200 },
+            BUILD_CAMPFIRE: { type, icon: "🔥", titleSi: "ගිනි මැලයක් දල්වන්න", target: 1, reward: 160 },
+            DEFEAT_WOLF: { type, icon: "🐺", titleSi: "රාත්‍රී වෘකයෙකු පරාජය කරන්න", target: 1, reward: 240 },
+            COOK_MEAT: { type, icon: "🍖", titleSi: "වෘක මස් පිස ආහාරයට ගන්න", target: 1, reward: 190 },
+            SURVIVE_DAY: { type, icon: "☀️", titleSi: "මීළඟ දිනය දක්වා ජීවත් වන්න", target: 1, reward: 220 }
+        };
+        const cfg = map[type] || map.CHOP_WOOD;
+        return { id: taskSerial++, ...cfg, progress: 0 };
+    }
+
+    function generateNextTask() {
+        const isNightNow = timeOfDay >= 0.72 && timeOfDay <= 0.92;
+        const pool = [];
+        if (!hasAxe) {
+            if (wood < 3) pool.push("CHOP_WOOD");
+            if (stone < 2) pool.push("MINE_STONE");
+            if (wood >= 3 && stone >= 2) pool.push("CRAFT_AXE");
+        } else if (!hasSpear) {
+            pool.push("CRAFT_SPEAR");
+        }
+        if (isNightNow) {
+            pool.push("DEFEAT_WOLF");
+            if (campfires.length === 0 && wood >= 5 && stone >= 2) pool.push("BUILD_CAMPFIRE");
+        }
+        if (thirst < 70) pool.push("DRINK_WATER");
+        if (rawMeat > 0 && wood > 0) pool.push("COOK_MEAT");
+        if (berries < 4) pool.push("PICK_BERRIES");
+        pool.push("CHOP_WOOD", "MINE_STONE", "PICK_BERRIES", "SURVIVE_DAY");
+        const filtered = pool.filter(t => t !== lastTaskType);
+        const pickFrom = filtered.length > 0 ? filtered : pool;
+        const chosen = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+        activeTask = createTask(chosen);
+    }
+
+    function advanceTask(type, amount = 1) {
+        if (!activeTask || activeTask.type !== type) return;
+        activeTask.progress = Math.min(activeTask.target, activeTask.progress + amount);
+        if (activeTask.progress >= activeTask.target) {
+            completedTasksCount++;
+            score += activeTask.reward;
+            playSfx("craft");
+            showToast(`🎯 මෙහෙයුම සම්පූර්ණයි! +${activeTask.reward} ලකුණු`);
+            generateNextTask();
+        }
+    }
 
     const worldObjects = new THREE.Group();
     scene.add(worldObjects);
@@ -757,11 +862,19 @@
         document.getElementById("clock-str").textContent = `${String(hr).padStart(2, "0")}:${String(mn).padStart(2, "0")}`;
         document.getElementById("score-val").textContent = Math.floor(score);
         let phase = "දහවල්", icon = "☀️";
-        if (timeOfDay >= 0.5 && timeOfDay < 0.65) { phase = "සැන්දෑව"; icon = "🌅"; }
-        else if (timeOfDay >= 0.65 && timeOfDay <= 0.9) { phase = "රාත්‍රිය"; icon = "🌙"; }
-        else if (timeOfDay > 0.9) { phase = "උදෑසන"; icon = "🌤️"; }
+        if (timeOfDay >= 0.62 && timeOfDay < 0.72) { phase = "සැන්දෑව"; icon = "🌅"; }
+        else if (timeOfDay >= 0.72 && timeOfDay <= 0.92) { phase = "රාත්‍රිය"; icon = "🌙"; }
+        else if (timeOfDay > 0.92) { phase = "උදෑසන"; icon = "🌤️"; }
         document.getElementById("time-icon").textContent = icon;
         document.getElementById("day-phase").textContent = `දිනය ${dayCount} - ${phase}`;
+
+        if (activeTask) {
+            document.getElementById("task-header").textContent = `🎯 මෙහෙයුම #${activeTask.id} (${completedTasksCount} ✓)`;
+            document.getElementById("task-progress-txt").textContent = `${activeTask.progress}/${activeTask.target}`;
+            document.getElementById("task-icon").textContent = activeTask.icon;
+            document.getElementById("task-title").textContent = activeTask.titleSi;
+            document.getElementById("task-bar").style.width = `${Math.min(100, (activeTask.progress / Math.max(1, activeTask.target)) * 100)}%`;
+        }
 
         const dirs = ["N","NE","E","SE","S","SW","W","NW"];
         const deg = (((-yaw * 180 / Math.PI) % 360) + 360) % 360;
@@ -907,12 +1020,12 @@
                 wood -= (r.cost.wood || 0); stone -= (r.cost.stone || 0);
                 berries -= (r.cost.berries || 0); rawMeat -= (r.cost.rawMeat || 0);
                 playSfx("craft");
-                if (r.id === "axe") { hasAxe = true; selectedSlot = 1; score += 100; }
-                else if (r.id === "spear") { hasSpear = true; selectedSlot = 2; score += 180; }
+                if (r.id === "axe") { hasAxe = true; selectedSlot = 1; score += 100; advanceTask("CRAFT_AXE", 1); }
+                else if (r.id === "spear") { hasSpear = true; selectedSlot = 2; score += 180; advanceTask("CRAFT_SPEAR", 1); }
                 else if (r.id === "torch") { torches++; torchFuel = 100; selectedSlot = 3; score += 60; }
-                else if (r.id === "campfire") { spawnCampfire(camera.position.x - Math.sin(yaw) * 2.6, camera.position.z - Math.cos(yaw) * 2.6, 100); score += 90; toggleCraft(false); }
+                else if (r.id === "campfire") { spawnCampfire(camera.position.x - Math.sin(yaw) * 2.6, camera.position.z - Math.cos(yaw) * 2.6, 100); score += 90; advanceTask("BUILD_CAMPFIRE", 1); toggleCraft(false); }
                 else if (r.id === "bandage") { bandages++; selectedSlot = 5; score += 50; }
-                else if (r.id === "cooked_meat") { hunger = Math.min(100, hunger + 65); hp = Math.min(100, hp + 30); score += 120; }
+                else if (r.id === "cooked_meat") { hunger = Math.min(100, hunger + 65); hp = Math.min(100, hp + 30); score += 120; advanceTask("COOK_MEAT", 1); }
                 showToast(`${r.icon} ${r.nameSi} සෑදුවා!`);
                 updateHud(); renderCrafting();
             };
@@ -958,22 +1071,28 @@
         if (!ent) return;
         if (ent.type === "tree" && ent.hp > 0) {
             ent.hp -= (selectedSlot === 1 ? 48 : selectedSlot === 2 ? 28 : 18);
-            wood += (selectedSlot === 1 ? 2 : 1); score += 10; playSfx("chop");
-            showToast(`+${selectedSlot === 1 ? 2 : 1} 🪵 දර`);
-            if (ent.hp <= 0) { ent.respawn = 45; ent.mesh.visible = false; wood += 2; }
+            const gained = selectedSlot === 1 ? 2 : 1;
+            wood += gained; score += 10; playSfx("chop");
+            showToast(`+${gained} 🪵 දර`);
+            advanceTask("CHOP_WOOD", gained);
+            if (ent.hp <= 0) { ent.respawn = 45; ent.mesh.visible = false; wood += 2; advanceTask("CHOP_WOOD", 2); }
         } else if (ent.type === "rock" && ent.hp > 0) {
             ent.hp -= (selectedSlot === 1 ? 38 : selectedSlot === 2 ? 28 : 12);
-            stone += (selectedSlot === 1 ? 2 : 1); score += 15; playSfx("mine");
-            showToast(`+${selectedSlot === 1 ? 2 : 1} 🪨 ගල්`);
-            if (ent.hp <= 0) { ent.respawn = 50; ent.mesh.visible = false; stone += 2; }
+            const gained = selectedSlot === 1 ? 2 : 1;
+            stone += gained; score += 15; playSfx("mine");
+            showToast(`+${gained} 🪨 ගල්`);
+            advanceTask("MINE_STONE", gained);
+            if (ent.hp <= 0) { ent.respawn = 50; ent.mesh.visible = false; stone += 2; advanceTask("MINE_STONE", 2); }
         } else if (ent.type === "bush") {
             if (!ent.hasBerries) { showToast("⏳ පලතුරු තවම වැඩෙමින් පවතී..."); return; }
             ent.hasBerries = false; ent.regrow = 35; ent.berriesMesh.visible = false;
             berries += 2; score += 10; playSfx("berry");
             showToast("+2 🍒 පලතුරු");
+            advanceTask("PICK_BERRIES", 2);
         } else if (ent.type === "water") {
             thirst = Math.min(100, thirst + 40); stamina = Math.min(100, stamina + 20);
             playSfx("drink"); showToast("💧 ජලය පානය කළා (+40 පිපාසය)");
+            advanceTask("DRINK_WATER", 1);
         } else if (ent.type === "wolf") {
             const dmg = selectedSlot === 2 ? 52 : selectedSlot === 1 ? 34 : 16;
             ent.hp -= dmg; playSfx("hurt");
@@ -984,6 +1103,7 @@
                 wolves = wolves.filter(w => w !== ent);
                 rawMeat++; score += 150;
                 showToast("🐺 වෘකයා පරාජය කළා! +1 🥩");
+                advanceTask("DEFEAT_WOLF", 1);
             } else {
                 showToast(`⚔️ වෘකයාට පහර දුන්නා (-${dmg} HP)`);
             }
@@ -1013,8 +1133,10 @@
         wood = 2; stone = 1; berries = 2; rawMeat = 0; torches = 0; torchFuel = 100; bandages = 0;
         hasAxe = false; hasSpear = false; selectedSlot = 0;
         score = 0; dayCount = 1; timeOfDay = 0.25; yaw = 0; pitch = 0; playerVelY = 0; onGround = true;
+        completedTasksCount = 0; taskSerial = 1; lastTaskType = null;
         camera.position.set(0, EYE_HEIGHT, 10);
         buildWorld();
+        activeTask = createTask("CHOP_WOOD");
         gamePhase = "PLAYING";
         isCraftingOpen = false;
         document.getElementById("start-overlay").classList.add("hidden");
@@ -1131,8 +1253,12 @@
     document.getElementById("btn-start").onclick = startGame;
     document.getElementById("btn-restart").onclick = startGame;
     document.getElementById("btn-pause-restart").onclick = startGame;
-    document.getElementById("btn-craft-book").onclick = () => toggleCraft(true);
-    document.getElementById("btn-close-craft").onclick = () => toggleCraft(false);
+    const craftBtn = document.getElementById("btn-craft-book");
+    craftBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    craftBtn.onclick = (e) => { e.stopPropagation(); toggleCraft(true); };
+    const closeCraftBtn = document.getElementById("btn-close-craft");
+    closeCraftBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    closeCraftBtn.onclick = (e) => { e.stopPropagation(); toggleCraft(false); };
     document.getElementById("btn-action").onclick = performAction;
     document.getElementById("btn-jump").onclick = () => { if (onGround) { playerVelY = 7.2; onGround = false; } };
     document.getElementById("btn-sprint").onclick = () => {
@@ -1183,11 +1309,22 @@
     let lastTime = performance.now();
     let hudAccum = 0;
 
+    const _skyDay = new THREE.Color(0x7ec8e3);
+    const _skySunset = new THREE.Color(0xd97706);
+    const _skyNight = new THREE.Color(0x050914);
+    const _skyDawn = new THREE.Color(0xfdba74);
+
     function animate(now) {
         requestAnimationFrame(animate);
         const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
         lastTime = now;
         elapsedSec += dt;
+
+        // Drift clouds smoothly
+        for (let i = 0; i < clouds.length; i++) {
+            clouds[i].position.x += dt * 0.9;
+            if (clouds[i].position.x > 110) clouds[i].position.x = -110;
+        }
 
         if (gamePhase === "START") {
             camera.position.set(0, EYE_HEIGHT, 10);
@@ -1198,16 +1335,31 @@
 
         if (gamePhase === "PLAYING" && !isCraftingOpen) {
             timeOfDay += dt / DAY_LENGTH_SEC;
-            if (timeOfDay >= 1) { timeOfDay -= 1; dayCount++; score += 200; showToast(`☀️ දිනය ${dayCount} උදා විය!`); }
+            if (timeOfDay >= 1) {
+                timeOfDay -= 1; dayCount++; score += 200;
+                showToast(`☀️ දිනය ${dayCount} උදා විය!`);
+                advanceTask("SURVIVE_DAY", 1);
+            }
 
-            // Sky & Lighting
-            const isNight = timeOfDay >= 0.65 && timeOfDay <= 0.9;
-            const skyHex = isNight ? 0x050914 : (timeOfDay >= 0.5 && timeOfDay < 0.65 ? 0xd97706 : 0x7ec8e3);
-            scene.background.lerp(new THREE.Color(skyHex), dt * 2.5);
+            // Sky, Sun/Moon & Lighting (Extended Daytime)
+            const isNight = timeOfDay >= 0.72 && timeOfDay <= 0.92;
+            const targetSky = isNight ? _skyNight : (timeOfDay >= 0.62 && timeOfDay < 0.72 ? _skySunset : (timeOfDay > 0.92 ? _skyDawn : _skyDay));
+            scene.background.lerp(targetSky, dt * 2.5);
             scene.fog.color.copy(scene.background);
-            sunLight.intensity = isNight ? 0.14 : 1.1;
-            hemiLight.intensity = isNight ? 0.18 : 0.8;
+            sunLight.intensity = isNight ? 0.16 : 1.2;
+            hemiLight.intensity = isNight ? 0.20 : 0.90;
             starMat.opacity = isNight ? 0.95 : 0;
+
+            const sunAngle = ((timeOfDay / 0.72) - 0.1) * Math.PI;
+            sunOrb.visible = !isNight;
+            moonOrb.visible = isNight;
+            if (!isNight) {
+                sunOrb.position.set(Math.cos(sunAngle) * 145, Math.max(-10, Math.sin(sunAngle) * 125), -55);
+                sunLight.position.copy(sunOrb.position).normalize().multiplyScalar(80);
+            } else {
+                const moonAngle = ((timeOfDay - 0.72) / 0.20) * Math.PI;
+                moonOrb.position.set(Math.cos(moonAngle) * 145, Math.max(12, Math.sin(moonAngle) * 115), -55);
+            }
 
             // Movement
             const fwd = ((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0)) - joyY;
