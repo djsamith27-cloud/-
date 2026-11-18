@@ -192,8 +192,10 @@ class WildSurvivalRenderer(
         Matrix.translateM(viewMatrix, 0, -camX, -camY, -camZ)
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
+        if (!worldShader.isValid) return
+
         // 1. Starfield at Night
-        if (engine.starOpacity > 0.02f) {
+        if (engine.starOpacity > 0.02f && starShader.isValid && starShader.aPosition >= 0) {
             GLES20.glEnable(GLES20.GL_BLEND)
             GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
             GLES20.glDepthMask(false)
@@ -206,11 +208,11 @@ class WildSurvivalRenderer(
             Matrix.multiplyMM(starMvp, 0, projMatrix, 0, starView, 0)
             GLES20.glUniformMatrix4fv(starShader.uMVPMatrix, 1, false, starMvp, 0)
             GLES20.glUniform1f(starShader.uOpacity, engine.starOpacity)
-            GLES20.glDisableVertexAttribArray(worldShader.aNormal)
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, starVboId)
             GLES20.glEnableVertexAttribArray(starShader.aPosition)
             GLES20.glVertexAttribPointer(starShader.aPosition, 3, GLES20.GL_FLOAT, false, 12, 0)
             GLES20.glDrawArrays(GLES20.GL_POINTS, 0, 700)
+            GLES20.glDisableVertexAttribArray(starShader.aPosition)
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0)
             GLES20.glDepthMask(true)
             GLES20.glDisable(GLES20.GL_BLEND)
@@ -253,11 +255,18 @@ class WildSurvivalRenderer(
             pointLightIntensity[idx] = (1.8f + sin(tSec * 19f + i * 1.7f) * 0.4f) * (cf.fuel / 100f)
             lightCount++
         }
-        GLES20.glUniform3fv(worldShader.uPointLightPos, 6, pointLightPos, 0)
-        GLES20.glUniform3fv(worldShader.uPointLightColor, 6, pointLightColor, 0)
-        GLES20.glUniform1fv(worldShader.uPointLightIntensity, 6, pointLightIntensity, 0)
+        if (worldShader.uPointLightPos >= 0) {
+            GLES20.glUniform3fv(worldShader.uPointLightPos, 6, pointLightPos, 0)
+        }
+        if (worldShader.uPointLightColor >= 0) {
+            GLES20.glUniform3fv(worldShader.uPointLightColor, 6, pointLightColor, 0)
+        }
+        if (worldShader.uPointLightIntensity >= 0) {
+            GLES20.glUniform1fv(worldShader.uPointLightIntensity, 6, pointLightIntensity, 0)
+        }
 
-        // 3. Draw Terrain & Water
+        // 3. Draw Terrain & Water (double-sided for thin planar layers)
+        GLES20.glDisable(GLES20.GL_CULL_FACE)
         // Ocean
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, 0f, -0.35f, 0f)
@@ -281,6 +290,7 @@ class WildSurvivalRenderer(
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, SurvivalGameEngine.POND_X, SurvivalGameEngine.POND_Y, SurvivalGameEngine.POND_Z)
         drawMesh(pondWaterMesh, 0.055f, 0.647f, 0.914f, 0.32f)
+        GLES20.glEnable(GLES20.GL_CULL_FACE)
 
         // 4. Draw Trees
         for (t in engine.trees) {

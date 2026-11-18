@@ -14,12 +14,17 @@ class GpuMesh(
     val vertexCount: Int
 ) {
     fun draw(posAttr: Int, normAttr: Int) {
+        if (posAttr < 0 || vboId == 0) return
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vboId)
         GLES20.glEnableVertexAttribArray(posAttr)
         GLES20.glVertexAttribPointer(posAttr, 3, GLES20.GL_FLOAT, false, 24, 0)
-        GLES20.glEnableVertexAttribArray(normAttr)
-        GLES20.glVertexAttribPointer(normAttr, 3, GLES20.GL_FLOAT, false, 24, 12)
+        if (normAttr >= 0) {
+            GLES20.glEnableVertexAttribArray(normAttr)
+            GLES20.glVertexAttribPointer(normAttr, 3, GLES20.GL_FLOAT, false, 24, 12)
+        }
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+        if (normAttr >= 0) GLES20.glDisableVertexAttribArray(normAttr)
+        GLES20.glDisableVertexAttribArray(posAttr)
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0)
     }
 }

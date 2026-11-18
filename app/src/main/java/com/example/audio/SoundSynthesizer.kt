@@ -6,7 +6,9 @@ import android.media.AudioTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.pow
@@ -20,18 +22,34 @@ enum class SfxType {
 class SoundSynthesizer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val sampleRate = 22050
+    private val activeTracks = AtomicInteger(0)
 
     @Volatile
     var isMuted: Boolean = false
 
     fun play(type: SfxType) {
         if (isMuted) return
+        if (activeTracks.get() >= 6) return
         scope.launch {
+            if (activeTracks.incrementAndGet() > 6) {
+                activeTracks.decrementAndGet()
+                return@launch
+            }
+            var track: AudioTrack? = null
             try {
                 val samples = synthesize(type)
-                playPcm(samples)
+                track = playPcm(samples)
+                val durationMs = (samples.size * 1000L / sampleRate) + 80L
+                delay(durationMs)
             } catch (_: Throwable) {
                 // Ignore audio hardware failures on headless or muted emulators
+            } finally {
+                try {
+                    track?.stop()
+                    track?.release()
+                } catch (_: Throwable) {
+                }
+                activeTracks.decrementAndGet()
             }
         }
     }
@@ -134,7 +152,7 @@ class SoundSynthesizer {
         return out
     }
 
-    private fun playPcm(samples: ShortArray) {
+    private fun playPcm(samples: ShortArray): AudioTrack {
         val bufferBytes = samples.size * 2
         val track = AudioTrack.Builder()
             .setAudioAttributes(
@@ -155,16 +173,7 @@ class SoundSynthesizer {
             .build()
 
         track.write(samples, 0, samples.size)
-        track.setNotificationMarkerPosition(samples.size)
-        track.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
-            override fun onMarkerReached(t: AudioTrack) {
-                try {
-                    t.stop()
-                    t.release()
-                } catch (_: Throwable) {}
-            }
-            override fun onPeriodicNotification(t: AudioTrack) {}
-        })
         track.play()
+        return track
     }
 }

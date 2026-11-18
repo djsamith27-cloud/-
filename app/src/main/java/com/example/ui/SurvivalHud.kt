@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -181,8 +182,8 @@ fun SurvivalHud(
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
-            val isPortraitOrNarrow = maxWidth < 660.dp
-            val isCompactLandscape = maxWidth in 660.dp..840.dp
+            val isPortraitOrNarrow = maxHeight > maxWidth || maxWidth < 500.dp
+            val isCompactLandscape = !isPortraitOrNarrow && maxWidth < 840.dp
 
             // TOP BAR(S)
             if (isPortraitOrNarrow) {
@@ -277,6 +278,19 @@ fun SurvivalHud(
                 }
             }
 
+            // TOP-RIGHT CORNER (below Clock/Resources): Circular Navigation Minimap
+            val minimapSize = if (isPortraitOrNarrow || isCompactLandscape) 86.dp else 98.dp
+            MinimapOverlay(
+                hud = hud,
+                sizeDp = minimapSize,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(
+                        top = if (isPortraitOrNarrow) 124.dp else 54.dp,
+                        end = 2.dp
+                    )
+            )
+
             // BOTTOM-LEFT: Virtual Touch Joystick
             val joySize = if (isPortraitOrNarrow) 104.dp else if (isCompactLandscape) 104.dp else 116.dp
             VirtualJoystick(
@@ -297,6 +311,11 @@ fun SurvivalHud(
                     .clip(RoundedCornerShape(16.dp))
                     .background(GlassHudBg)
                     .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {}
+                    )
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -420,6 +439,11 @@ private fun VitalsCard(
             .clip(RoundedCornerShape(14.dp))
             .background(GlassHudBg)
             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            )
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
@@ -579,6 +603,11 @@ private fun ClockCompassCard(
             .clip(RoundedCornerShape(14.dp))
             .background(GlassHudBg)
             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            )
             .padding(horizontal = if (compact) 7.dp else 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 7.dp)

@@ -469,7 +469,7 @@ class SurvivalGameEngine(
 
     fun performPrimaryAction() {
         synchronized(worldLock) {
-            if (gamePhase != GamePhase.PLAYING || isCraftingOpen) return
+            if (gamePhase != GamePhase.PLAYING || isCraftingOpen || isPaused) return
             if (swingCooldown > 0f) return
 
             // Eating Berries (Slot 4)
@@ -1113,9 +1113,13 @@ class SurvivalGameEngine(
     }
 
     fun updateVitalsFromViewModel(newHunger: Float, newThirst: Float) {
-        synchronized(worldLock) {
+        val shouldEmit = synchronized(worldLock) {
             hunger = newHunger.coerceIn(0f, 100f)
             thirst = newThirst.coerceIn(0f, 100f)
+            computeSurvivalStatus() != _hudState.value.survivalStatus
+        }
+        if (shouldEmit) {
+            emitHudImmediate()
         }
     }
 
@@ -1152,6 +1156,25 @@ class SurvivalGameEngine(
 
     private fun emitHudImmediate() {
         val snap = synchronized(worldLock) {
+            val mapPoints = ArrayList<MinimapPoint>(
+                trees.size + rocks.size + bushes.size + campfires.size + wolves.size
+            )
+            for (t in trees) {
+                if (t.hp > 0f) mapPoints.add(MinimapPoint(t.x, t.z, MinimapKind.TREE))
+            }
+            for (r in rocks) {
+                if (r.hp > 0f) mapPoints.add(MinimapPoint(r.x, r.z, MinimapKind.ROCK))
+            }
+            for (b in bushes) {
+                if (b.hasBerries) mapPoints.add(MinimapPoint(b.x, b.z, MinimapKind.BUSH))
+            }
+            for (cf in campfires) {
+                mapPoints.add(MinimapPoint(cf.x, cf.z, MinimapKind.CAMPFIRE))
+            }
+            for (w in wolves) {
+                mapPoints.add(MinimapPoint(w.x, w.z, MinimapKind.WOLF))
+            }
+
             HudSnapshot(
                 gamePhase = gamePhase,
                 isCraftingOpen = isCraftingOpen,
@@ -1176,6 +1199,9 @@ class SurvivalGameEngine(
                 dayCount = dayCount,
                 timeOfDay = timeOfDay,
                 yaw = yaw,
+                playerX = playerPos.x,
+                playerZ = playerPos.z,
+                minimapPoints = mapPoints,
                 targetPrompt = currentTarget?.label,
                 nearCampfireForRefuel = nearCampfireRefuel,
                 nearWarmFire = nearWarmFire,

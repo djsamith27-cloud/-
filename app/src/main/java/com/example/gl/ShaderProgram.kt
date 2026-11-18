@@ -1,9 +1,13 @@
 package com.example.gl
 
 import android.opengl.GLES20
+import android.util.Log
+
+private const val TAG = "WildSurvivalGL"
 
 class WorldShaderProgram {
     val programId: Int
+    val isValid: Boolean
 
     val aPosition: Int
     val aNormal: Int
@@ -99,28 +103,51 @@ class WorldShaderProgram {
             }
         """.trimIndent()
 
-        programId = linkProgram(vs, fs)
-        aPosition = GLES20.glGetAttribLocation(programId, "aPosition")
-        aNormal = GLES20.glGetAttribLocation(programId, "aNormal")
+        programId = linkProgram(vs, fs) { prog ->
+            GLES20.glBindAttribLocation(prog, 0, "aPosition")
+            GLES20.glBindAttribLocation(prog, 1, "aNormal")
+        }
+        isValid = programId != 0
+        if (isValid) {
+            aPosition = GLES20.glGetAttribLocation(programId, "aPosition")
+            aNormal = GLES20.glGetAttribLocation(programId, "aNormal")
 
-        uMVPMatrix = GLES20.glGetUniformLocation(programId, "uMVPMatrix")
-        uModelMatrix = GLES20.glGetUniformLocation(programId, "uModelMatrix")
-        uColor = GLES20.glGetUniformLocation(programId, "uColor")
-        uEmissive = GLES20.glGetUniformLocation(programId, "uEmissive")
-        uSunDir = GLES20.glGetUniformLocation(programId, "uSunDir")
-        uSunIntensity = GLES20.glGetUniformLocation(programId, "uSunIntensity")
-        uHemiIntensity = GLES20.glGetUniformLocation(programId, "uHemiIntensity")
-        uSkyColor = GLES20.glGetUniformLocation(programId, "uSkyColor")
-        uFogDensity = GLES20.glGetUniformLocation(programId, "uFogDensity")
-        uCameraPos = GLES20.glGetUniformLocation(programId, "uCameraPos")
-        uPointLightPos = GLES20.glGetUniformLocation(programId, "uPointLightPos")
-        uPointLightColor = GLES20.glGetUniformLocation(programId, "uPointLightColor")
-        uPointLightIntensity = GLES20.glGetUniformLocation(programId, "uPointLightIntensity")
+            uMVPMatrix = GLES20.glGetUniformLocation(programId, "uMVPMatrix")
+            uModelMatrix = GLES20.glGetUniformLocation(programId, "uModelMatrix")
+            uColor = GLES20.glGetUniformLocation(programId, "uColor")
+            uEmissive = GLES20.glGetUniformLocation(programId, "uEmissive")
+            uSunDir = GLES20.glGetUniformLocation(programId, "uSunDir")
+            uSunIntensity = GLES20.glGetUniformLocation(programId, "uSunIntensity")
+            uHemiIntensity = GLES20.glGetUniformLocation(programId, "uHemiIntensity")
+            uSkyColor = GLES20.glGetUniformLocation(programId, "uSkyColor")
+            uFogDensity = GLES20.glGetUniformLocation(programId, "uFogDensity")
+            uCameraPos = GLES20.glGetUniformLocation(programId, "uCameraPos")
+            uPointLightPos = getArrayUniformLocation(programId, "uPointLightPos")
+            uPointLightColor = getArrayUniformLocation(programId, "uPointLightColor")
+            uPointLightIntensity = getArrayUniformLocation(programId, "uPointLightIntensity")
+        } else {
+            aPosition = -1
+            aNormal = -1
+            uMVPMatrix = -1
+            uModelMatrix = -1
+            uColor = -1
+            uEmissive = -1
+            uSunDir = -1
+            uSunIntensity = -1
+            uHemiIntensity = -1
+            uSkyColor = -1
+            uFogDensity = -1
+            uCameraPos = -1
+            uPointLightPos = -1
+            uPointLightColor = -1
+            uPointLightIntensity = -1
+        }
     }
 }
 
 class StarShaderProgram {
     val programId: Int
+    val isValid: Boolean
     val aPosition: Int
     val uMVPMatrix: Int
     val uOpacity: Int
@@ -143,35 +170,75 @@ class StarShaderProgram {
             }
         """.trimIndent()
 
-        programId = linkProgram(vs, fs)
-        aPosition = GLES20.glGetAttribLocation(programId, "aPosition")
-        uMVPMatrix = GLES20.glGetUniformLocation(programId, "uMVPMatrix")
-        uOpacity = GLES20.glGetUniformLocation(programId, "uOpacity")
+        programId = linkProgram(vs, fs) { prog ->
+            GLES20.glBindAttribLocation(prog, 0, "aPosition")
+        }
+        isValid = programId != 0
+        if (isValid) {
+            aPosition = GLES20.glGetAttribLocation(programId, "aPosition")
+            uMVPMatrix = GLES20.glGetUniformLocation(programId, "uMVPMatrix")
+            uOpacity = GLES20.glGetUniformLocation(programId, "uOpacity")
+        } else {
+            aPosition = -1
+            uMVPMatrix = -1
+            uOpacity = -1
+        }
     }
+}
+
+private fun getArrayUniformLocation(programId: Int, baseName: String): Int {
+    val direct = GLES20.glGetUniformLocation(programId, baseName)
+    return if (direct >= 0) direct else GLES20.glGetUniformLocation(programId, "$baseName[0]")
 }
 
 private fun compileShader(type: Int, src: String): Int {
     val shader = GLES20.glCreateShader(type)
+    if (shader == 0) return 0
     GLES20.glShaderSource(shader, src)
     GLES20.glCompileShader(shader)
     val compiled = IntArray(1)
     GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0)
     if (compiled[0] == 0) {
         val log = GLES20.glGetShaderInfoLog(shader)
+        Log.e(TAG, "Shader compile failed ($type): $log")
         GLES20.glDeleteShader(shader)
-        throw RuntimeException("Shader compile failed: $log")
+        return 0
     }
     return shader
 }
 
-private fun linkProgram(vsSrc: String, fsSrc: String): Int {
+private fun linkProgram(
+    vsSrc: String,
+    fsSrc: String,
+    bindAttributes: (Int) -> Unit = {}
+): Int {
     val vs = compileShader(GLES20.GL_VERTEX_SHADER, vsSrc)
     val fs = compileShader(GLES20.GL_FRAGMENT_SHADER, fsSrc)
+    if (vs == 0 || fs == 0) {
+        if (vs != 0) GLES20.glDeleteShader(vs)
+        if (fs != 0) GLES20.glDeleteShader(fs)
+        return 0
+    }
     val prog = GLES20.glCreateProgram()
+    if (prog == 0) {
+        GLES20.glDeleteShader(vs)
+        GLES20.glDeleteShader(fs)
+        return 0
+    }
     GLES20.glAttachShader(prog, vs)
     GLES20.glAttachShader(prog, fs)
+    bindAttributes(prog)
     GLES20.glLinkProgram(prog)
     GLES20.glDeleteShader(vs)
     GLES20.glDeleteShader(fs)
+
+    val linked = IntArray(1)
+    GLES20.glGetProgramiv(prog, GLES20.GL_LINK_STATUS, linked, 0)
+    if (linked[0] == 0) {
+        val log = GLES20.glGetProgramInfoLog(prog)
+        Log.e(TAG, "Program link failed: $log")
+        GLES20.glDeleteProgram(prog)
+        return 0
+    }
     return prog
 }

@@ -192,6 +192,16 @@ enum class SurvivalStatus(val icon: String, val labelSi: String, val labelEn: St
     DEFEATED("💀", "පරාජිතයි", "Defeated")
 }
 
+enum class MinimapKind {
+    CAMPFIRE, WOLF, TREE, ROCK, BUSH
+}
+
+data class MinimapPoint(
+    val x: Float,
+    val z: Float,
+    val kind: MinimapKind
+)
+
 data class HudSnapshot(
     val gamePhase: GamePhase = GamePhase.START,
     val isCraftingOpen: Boolean = false,
@@ -216,6 +226,9 @@ data class HudSnapshot(
     val dayCount: Int = 1,
     val timeOfDay: Float = 0.25f,
     val yaw: Float = 0f,
+    val playerX: Float = 0f,
+    val playerZ: Float = 10f,
+    val minimapPoints: List<MinimapPoint> = emptyList(),
     val targetPrompt: String? = null,
     val nearCampfireForRefuel: Boolean = false,
     val nearWarmFire: Boolean = false,
