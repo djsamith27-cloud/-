@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Wild Survival 3D</string>
+    <string name="title_game_si">වනාන්තර පැවැත්ම 3D (Wild Survival)</string>
+    <string name="start_subtitle">ත්‍රිමාණ (3D First-Person) වනාන්තර දූපතක තනිවූ ඔබ, ගස් කපා දර, ගල් සහ පලතුරු එකතු කරගන්න. නිර්මාණ පොත (Crafting Book) විවෘත කර පොරව, හෙල්ල, අතේ ගෙන යන 3D පන්දම සහ ඖෂධ සාදා රාත්‍රී වෘකයන්ගෙන් බේරී ජීවත් වන්න!</string>
+    <string name="start_button">ක්‍රීඩාව අරඹන්න (Start 3D) ▶</string>
+    <string name="crafting_book_btn">නිර්මාණ පොත</string>
+    <string name="crafting_book_title">නිර්මාණ පොත (Survival Crafting Book)</string>
+    <string name="crafting_book_subtitle">ඔබ එකතු කළ ද්‍රව්‍ය භාවිතයෙන් නව ආයුධ, පන්දම්, ගිනි මැල සහ ඖෂධ සාදන්න.</string>
+    <string name="game_over_title">ඔබ පරාජය විය!</string>
+    <string name="restart_button">නැවත සෙල්ලම් කරන්න ↻</string>
+    <string name="days_survived_label">ජීවත් වූ දින</string>
+    <string name="total_score_label">මුළු ලකුණු</string>
+    <string name="health_label">❤️ සෞඛ්‍යය</string>
+    <string name="hunger_label">🍖 කුසගින්න</string>
+    <string name="thirst_label">💧 පිපාසය</string>
+    <string name="stamina_label">⚡ ශක්තිය</string>
+    <string name="jump_label">පනින්න</string>
+    <string name="action_label">ක්‍රියා / භාවිත</string>
+    <string name="sprint_label">දුවන්න</string>
+    <string name="refuel_label">දර දමන්න</string>
+</resources>
