@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Island Survival Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0d1b2a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+            user-select: none;
+        }
+
+        .game-card {
+            width: 420px;
+            background: #1b263b;
+            border: 2px solid #415a77;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            box-sizing: border-box;
+        }
+
+        h2 {
+            text-align: center;
+            color: #e0e1dd;
+            margin-top: 0;
+            letter-spacing: 1px;
+        }
+
+        .stats-box {
+            background: #0d1b2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-group {
+            margin-bottom: 12px;
+        }
+
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 14px;
+            background: #333;
+            border-radius: 7px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+
+        #hp-fill { background: #e63946; }
+        #hunger-fill { background: #f4a261; }
+        #thirst-fill { background: #4ea8de; }
+        #fire-fill { background: #fb8500; }
+
+        .inventory {
+            display: flex;
+            justify-content: space-around;
+            background: #0d1b2a;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: #415a77;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            background: #778da9;
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        #log-box {
+            background: #0d1b2a;
+            border: 1px solid #415a77;
+            height: 90px;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 13px;
+            overflow-y: auto;
+            color: #a5c4d4;
+            line-height: 1.4;
+        }
+
+        #game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 27, 42, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            text-align: center;
+            display: none;
+        }
+
+        .restart-btn {
+            background: #e63946;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        <h2>🏕️ දූපත් පැවැත්ම (Island Survival)</h2>
+
+        <!-- තත්ත්ව දර්ශක (Stats) -->
+        <div class="stats-box">
+            <div class="stat-group">
+                <div class="stat-label"><span>සෞඛ්‍යය (Health)</span><span id="hp-val">100%</span></div>
+                <div class="progress-bar"><div id="hp-fill" class="progress-fill"></div></div>
+            </div>
+            <div class="stat-group">
+                <div class="stat-label"><span>කුසගින්න (Hunger)</span><span id="hunger-val">100%</span></div>
+                <div class="progress-bar"><div id="hunger-fill" class="progress-fill"></div></div>
+            </div>
+            <div class="stat-group">
+                <div class="stat-label"><span>පිපාසය (Thirst)</span><span id="thirst-val">100%</span></div>
+                <div class="progress-bar"><div id="thirst-fill" class="progress-fill"></div></div>
+            </div>
+            <div class="stat-group">
+                <div class="stat-label"><span>ගින්නේ තත්වය (Campfire)</span><span id="fire-val">50%</span></div>
+                <div class="progress-bar"><div id="fire-fill" class="progress-fill"></div></div>
+            </div>
+        </div>
+
+        <!-- භාණ්ඩ එකතුව (Inventory) -->
+        <div class="inventory">
+            <div>ឈើ දර (Wood): <span id="wood-count">2</span></div>
+            <div>ආහාර (Food): <span id="food-count">2</span></div>
+            <div>ජලය (Water): <span id="water-count">2</span></div>
+        </div>
+
+        <!-- ක්‍රියාකාරී බොත්තම් -->
+        <div class="action-grid">
+            <button class="btn" onclick="gatherWood()">🪵 දර සොයන්න</button>
+            <button class="btn" onclick="findFood()">🍎 ආහාර සොයන්න</button>
+            <button class="btn" onclick="findWater()">💧 වතුර සොයන්න</button>
+            <button class="btn" onclick="feedFire()">🔥 ගින්න පෝෂණය කරන්න</button>
+            <button class="btn" onclick="eatFood()" style="grid-column: span 2; background: #2a9d8f;">🍲 ආහාරයක් වළඳන්න</button>
+            <button class="btn" onclick="drinkWater()" style="grid-column: span 2; background: #219ebc;">🥤 වතුර බොන්න</button>
+        </div>
+
+        <!-- සිදුවීම් වාර්තාව (Log) -->
+        <div id="log-box">ගේම් එක ආරම්භ විය. ඔබේ ජීවිතය ආරක්ෂා කරගන්න!</div>
+    </div>
+
+    <!-- ගේම් ඕවර් තිරය -->
+    <div id="game-over-screen">
+        <h1 style="color: #e63946; margin-bottom: 5px;">ඔබ මිය ගියා! 💀</h1>
+        <p id="death-reason" style="color: #a5c4d4; margin-bottom: 20px;">කාලීන තත්වයන් දරාගත නොහැකි විය.</p>
+        <button class="restart-btn" onclick="resetGame()">නැවත උත්සාහ කරන්න</button>
+    </div>
+
+    <script>
+        // ක්‍රීඩකයාගේ තත්ත්වයන්
+        let stats = {
+            hp: 100,
+            hunger: 100,
+            thirst: 100,
+            fire: 50
+        };
+
+        // ඉන්වෙන්ටරි දත්ත
+        let inventory = {
+            wood: 2,
+            food: 2,
+            water: 2
+        };
+
+        let gameInterval = null;
+        let isPlaying = true;
+
+        const logBox = document.getElementById('log-box');
+
+        function addLog(message) {
+            logBox.innerHTML += `<br>` + message;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function updateUI() {
+            document.getElementById('hp-val').textContent = stats.hp + '%';
+            document.getElementById('hp-fill').style.width = stats.hp + '%';
+
+            document.getElementById('hunger-val').textContent = stats.hunger + '%';
+            document.getElementById('hunger-fill').style.width = stats.hunger + '%';
+
+            document.getElementById('thirst-val').textContent = stats.thirst + '%';
+            document.getElementById('thirst-fill').style.width = stats.thirst + '%';
+
+            document.getElementById('fire-val').textContent = stats.fire + '%';
+            document.getElementById('fire-fill').style.width = stats.fire + '%';
+
+            document.getElementById('wood-count').textContent = inventory.wood;
+            document.getElementById('food-count').textContent = inventory.food;
+            document.getElementById('water-count').textContent = inventory.water;
+        }
+
+        // කාලයත් සමඟ සිදුවන වෙනස්කම් (සෑම තත්පර 2 කට වරක්)
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            stats.hunger = Math.max(0, stats.hunger - 3);
+            stats.thirst = Math.max(0, stats.thirst - 4);
+            stats.fire = Math.max(0, stats.fire - 5);
+
+            // ගින්න නිවී ගියහොත් හෝ කුසගින්න/පිපාසය ශුන්‍ය වුවහොත් HP අඩුවීම
+            if (stats.fire === 0) {
+                stats.hp = Math.max(0, stats.hp - 5);
+                addLog("⚠️ අධික සීතල නිසා ඔබේ සෞඛ්‍යය අඩුවෙයි!");
+            }
+            if (stats.hunger === 0 || stats.thirst === 0) {
+                stats.hp = Math.max(0, stats.hp - 5);
+                addLog("⚠️ බඩගින්න හෝ පිපාසය නිසා ඔබ දුර්වල වේ!");
+            }
+
+            if (stats.hp <= 0) {
+                endGame("ඔබේ සෞඛ්‍යය සම්පූර්ණයෙන්ම බිඳ වැටුණි.");
+            }
+
+            updateUI();
+        }
+
+        // ක්‍රියාකාරකම්
+        function gatherWood() {
+            if (!isPlaying) return;
+            inventory.wood += 2;
+            addLog("🪵 ඔබ වනාන්තරයෙන් දර කැබලි 2ක් එකතු කරගත්තා.");
+            updateUI();
+        }
+
+        function findFood() {
+            if (!isPlaying) return;
+            inventory.food += 1;
+            stats.thirst = Math.max(0, stats.thirst - 2);
+            addLog("🍎 ඔබ කැලයෙන් පලතුරක් සොයා ගත්තා.");
+            updateUI();
+        }
+
+        function findWater() {
+            if (!isPlaying) return;
+            inventory.water += 1;
+            stats.hunger = Math.max(0, stats.hunger - 2);
+            addLog("💧 ඔබ දොළ පාරකින් වතුර බෝතලයක් පුරවා ගත්තා.");
+            updateUI();
+        }
+
+        function feedFire() {
+            if (!isPlaying) return;
+            if (inventory.wood > 0) {
+                inventory.wood--;
+                stats.fire = Math.min(100, stats.fire + 35);
+                addLog("🔥 ගින්න තවත් තදින් දල්වන ලදී.");
+            } else {
+                addLog("❌ ඔබ ළඟ දර නැත! දර සොයන්න.");
+            }
+            updateUI();
+        }
+
+        function eatFood() {
+            if (!isPlaying) return;
+            if (inventory.food > 0) {
+                inventory.food--;
+                stats.hunger = Math.min(100, stats.hunger + 30);
+                stats.hp = Math.min(100, stats.hp + 10);
+                addLog("🍲 ඔබ ආහාරයක් ගත්තා. කුසගින්න අඩුවුණා.");
+            } else {
+                addLog("❌ කෑමට කිසිවක් නැත!");
+            }
+            updateUI();
+        }
+
+        function drinkWater() {
+            if (!isPlaying) return;
+            if (inventory.water > 0) {
+                inventory.water--;
+                stats.thirst = Math.min(100, stats.thirst + 40);
+                addLog("🥤 ඔබ වතුර බිව්වා. පිපාසය සංසිඳුණා.");
+            } else {
+                addLog("❌ බීමට වතුර නැත!");
+            }
+            updateUI();
+        }
+
+        function endGame(reason) {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            document.getElementById('death-reason').textContent = reason;
+            document.getElementById('game-over-screen').style.display = 'flex';
+        }
+
+        function resetGame() {
+            stats = { hp: 100, hunger: 100, thirst: 100, fire: 50 };
+            inventory = { wood: 2, food: 2, water: 2 };
+            isPlaying = true;
+            logBox.innerHTML = "ගේම් එක නැවත ආරම්භ විය. පරිස්සමින් සෙල්ලම් කරන්න!";
+            document.getElementById('game-over-screen').style.display = 'none';
+            gameInterval = setInterval(gameLoop, 2500);
+            updateUI();
+        }
+
+        // ගේම් ලූප් එක ආරම්භ කිරීම
+        gameInterval = setInterval(gameLoop, 2500);
+        updateUI();
+    </script>
+</body>
+</html>
