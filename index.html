@@ -103,9 +103,63 @@
             transition: opacity 0.2s ease;
             z-index: 12;
         }
+
+        /* Landscape Orientation Prompt Overlay */
+        #portrait-warning {
+            display: none;
+        }
+        @media screen and (orientation: portrait) and (max-width: 900px) {
+            #portrait-warning.enforce-landscape {
+                display: flex;
+            }
+        }
+
+        /* Crafting Book Rustic Parchment / Wood Aesthetic */
+        .craft-book-modal {
+            background: linear-gradient(145deg, #291d14 0%, #1c130d 100%);
+            border: 3px solid #78553a;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), inset 0 0 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .parchment-card {
+            background: linear-gradient(180deg, rgba(245, 232, 206, 0.1) 0%, rgba(214, 190, 148, 0.06) 100%);
+            border: 1px solid rgba(217, 179, 130, 0.25);
+        }
+
+        .hotbar-slot {
+            transition: all 0.12s ease;
+        }
+        .hotbar-slot.selected {
+            border-color: #fbbf24;
+            background: rgba(245, 158, 11, 0.28);
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+        }
+
+        @keyframes rotatePhone {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(-90deg); }
+        }
+        .animate-rotate-phone {
+            animation: rotatePhone 2s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Portrait Orientation Lock / Warning Overlay for Mobile Devices -->
+    <div id="portrait-warning" class="enforce-landscape fixed inset-0 bg-stone-950/95 backdrop-blur-lg z-50 flex-col items-center justify-center p-6 text-center">
+        <div class="text-6xl mb-4 animate-rotate-phone">📱</div>
+        <h2 class="text-2xl font-extrabold text-amber-300 mb-2">
+            කරුණාකර දුරකථනය හරස් අතට (Landscape) හරවන්න 🔄
+        </h2>
+        <p class="text-sm text-stone-300 max-w-xs mb-6">
+            හොඳම 3D අත්දැකීම සහ පහසු පාලනය සඳහා මෙම ක්‍රීඩාව හරස් අතට (Landscape Mode) සකසා ඇත.
+        </p>
+        <button onclick="dismissPortraitWarning()" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-stone-200 border border-white/20">
+            දිගටම කරගෙන යන්න (Dismiss)
+        </button>
+    </div>
 
     <!-- 3D WebGL Canvas Container -->
     <div id="canvas-container"></div>
@@ -119,24 +173,24 @@
         [Click] ගස කපන්න (Chop Tree)
     </div>
 
-    <!-- Top HUD -->
-    <div id="hud-top" class="fixed top-3 left-3 right-3 flex flex-wrap justify-between items-start gap-2 pointer-events-none z-15 hidden">
+    <!-- Top Landscape HUD -->
+    <div id="hud-top" class="fixed top-2.5 left-3 right-3 flex justify-between items-start gap-2 pointer-events-none z-15 hidden">
         
-        <!-- Vitals (Health, Hunger, Thirst, Stamina) -->
-        <div class="glass-hud rounded-2xl p-3 flex flex-col gap-1.5 w-52 sm:w-64 pointer-events-auto">
+        <!-- Top-Left: Compact Landscape Vitals (Health, Hunger, Thirst, Stamina) -->
+        <div class="glass-hud rounded-2xl p-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 w-64 sm:w-80 pointer-events-auto">
             <div>
-                <div class="flex justify-between text-[11px] font-bold text-rose-300">
-                    <span>❤️ සෞඛ්‍යය (HP)</span>
-                    <span id="hp-val">100/100</span>
+                <div class="flex justify-between text-[10px] font-bold text-rose-300">
+                    <span>❤️ සෞඛ්‍යය</span>
+                    <span id="hp-val">100</span>
                 </div>
-                <div class="w-full h-2.5 bg-gray-950 rounded-full overflow-hidden border border-white/10">
+                <div class="w-full h-2 bg-gray-950 rounded-full overflow-hidden border border-white/10">
                     <div id="hp-bar" class="h-full bg-gradient-to-r from-rose-600 to-red-400 transition-all duration-150" style="width: 100%;"></div>
                 </div>
             </div>
 
             <div>
-                <div class="flex justify-between text-[11px] font-bold text-amber-300">
-                    <span>🍖 කුසගින්න (Hunger)</span>
+                <div class="flex justify-between text-[10px] font-bold text-amber-300">
+                    <span>🍖 කුසගින්න</span>
                     <span id="hunger-val">100%</span>
                 </div>
                 <div class="w-full h-2 bg-gray-950 rounded-full overflow-hidden border border-white/10">
@@ -145,8 +199,8 @@
             </div>
 
             <div>
-                <div class="flex justify-between text-[11px] font-bold text-sky-300">
-                    <span>💧 පිපාසය (Thirst)</span>
+                <div class="flex justify-between text-[10px] font-bold text-sky-300">
+                    <span>💧 පිපාසය</span>
                     <span id="thirst-val">100%</span>
                 </div>
                 <div class="w-full h-2 bg-gray-950 rounded-full overflow-hidden border border-white/10">
@@ -155,142 +209,218 @@
             </div>
 
             <div>
-                <div class="flex justify-between text-[11px] font-bold text-emerald-300">
-                    <span>⚡ ශක්තිය (Stamina)</span>
+                <div class="flex justify-between text-[10px] font-bold text-emerald-300">
+                    <span>⚡ ශක්තිය</span>
                     <span id="stamina-val">100%</span>
                 </div>
-                <div class="w-full h-1.5 bg-gray-950 rounded-full overflow-hidden border border-white/10">
+                <div class="w-full h-2 bg-gray-950 rounded-full overflow-hidden border border-white/10">
                     <div id="stamina-bar" class="h-full bg-gradient-to-r from-emerald-600 to-green-400 transition-all duration-75" style="width: 100%;"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Day / Night Clock & Score -->
-        <div class="glass-hud rounded-2xl px-4 py-2 flex items-center gap-3 pointer-events-auto">
-            <span id="sky-icon" class="text-2xl">☀️</span>
-            <div>
-                <div id="day-label" class="text-xs sm:text-sm font-extrabold text-white">දිනය 1 - දහවල්</div>
-                <div id="clock-label" class="text-[11px] text-gray-300">වේලාව: 08:00 | ලකුණු: 0</div>
+        <!-- Top-Center: Compact Resource Bag & Crafting Book Trigger -->
+        <div class="glass-hud rounded-2xl px-3 py-2 flex items-center gap-2.5 sm:gap-3.5 pointer-events-auto">
+            <div class="flex items-center gap-1" title="දර (Wood)">
+                <span class="text-sm">🪵</span>
+                <span id="inv-wood" class="text-xs font-extrabold text-amber-200">2</span>
             </div>
-            <button id="mute-btn" onclick="toggleMute()" class="ml-1 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm" title="ශබ්දය">
-                🔊
+            <div class="flex items-center gap-1" title="ගල් (Stone)">
+                <span class="text-sm">🪨</span>
+                <span id="inv-stone" class="text-xs font-extrabold text-stone-200">1</span>
+            </div>
+            <div class="flex items-center gap-1" title="පලතුරු (Berries)">
+                <span class="text-sm">🍒</span>
+                <span id="inv-berries" class="text-xs font-extrabold text-rose-200">2</span>
+            </div>
+            <div class="flex items-center gap-1" title="අමු මස් (Raw Meat)">
+                <span class="text-sm">🥩</span>
+                <span id="inv-rawmeat" class="text-xs font-extrabold text-red-300">0</span>
+            </div>
+
+            <div class="h-5 w-px bg-white/15"></div>
+
+            <button onclick="toggleCraftingBook()" class="btn-press flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-extrabold shadow-md border border-amber-300/40">
+                <span>📖</span>
+                <span>නිර්මාණ පොත [C]</span>
             </button>
         </div>
 
-        <!-- Inventory Counter -->
-        <div class="glass-hud rounded-2xl p-2.5 flex gap-3 items-center pointer-events-auto">
-            <div class="flex flex-col items-center min-w-[36px]">
-                <span class="text-base">🪵</span>
-                <span id="inv-wood" class="text-xs font-extrabold text-amber-200">0</span>
-                <span class="text-[9px] text-gray-400">දර</span>
+        <!-- Top-Right: Day/Night Clock, Compass & Audio -->
+        <div class="glass-hud rounded-2xl px-3 py-2 flex items-center gap-2.5 pointer-events-auto">
+            <span id="sky-icon" class="text-xl">☀️</span>
+            <div>
+                <div id="day-label" class="text-xs font-extrabold text-white">දිනය 1 - දහවල්</div>
+                <div id="clock-label" class="text-[10px] text-gray-300">08:00 | ලකුණු: 0</div>
             </div>
-            <div class="flex flex-col items-center min-w-[36px]">
-                <span class="text-base">🪨</span>
-                <span id="inv-stone" class="text-xs font-extrabold text-stone-200">0</span>
-                <span class="text-[9px] text-gray-400">ගල්</span>
+            <div class="h-6 w-px bg-white/15"></div>
+            <div id="compass-badge" class="px-2 py-1 rounded-lg bg-black/40 border border-white/10 text-[11px] font-bold text-amber-300" title="දිශාව (Compass)">
+                🧭 N
             </div>
-            <div class="flex flex-col items-center min-w-[36px]">
-                <span class="text-base">🍒</span>
-                <span id="inv-berries" class="text-xs font-extrabold text-rose-200">2</span>
-                <span class="text-[9px] text-gray-400">පලතුරු</span>
-            </div>
-            <div class="h-7 w-px bg-white/15"></div>
-            <div class="flex flex-col items-center min-w-[44px]">
-                <span id="equipped-icon" class="text-base">👊</span>
-                <span id="equipped-name" class="text-[10px] font-bold text-emerald-300">අත</span>
-            </div>
+            <button id="mute-btn" onclick="toggleMute()" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs" title="ශබ්දය">
+                🔊
+            </button>
         </div>
     </div>
 
     <!-- Floating Toast Notification -->
-    <div id="toast-msg" class="fixed top-28 left-1/2 -translate-x-1/2 glass-hud px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold text-emerald-200 pointer-events-none opacity-0 transition-opacity duration-200 z-20">
+    <div id="toast-msg" class="fixed top-20 left-1/2 -translate-x-1/2 glass-hud px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold text-emerald-200 pointer-events-none opacity-0 transition-opacity duration-200 z-25">
         පණිවිඩය
     </div>
 
     <!-- Pointer Lock Resume Banner (Desktop) -->
     <div id="lock-banner" onclick="requestPointerLockSafe()" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 glass-hud px-6 py-4 rounded-2xl text-center cursor-pointer z-25 hidden border border-amber-400/40">
         <div class="text-lg font-extrabold text-amber-300 mb-1">🖱️ තිරය මත ක්ලික් කරන්න</div>
-        <div class="text-xs text-gray-300">වටපිට බැලීමට සහ ක්‍රීඩා කිරීමට මූසිකය අගුළු දමන්න (Click to Look Around)</div>
+        <div class="text-xs text-gray-300">වටපිට බැලීමට සහ ක්‍රීඩා කිරීමට මූසිකය අගුළු දමන්න (Click to Resume)</div>
     </div>
 
-    <!-- Bottom Crafting & Action Bar -->
-    <div id="hud-bottom" class="fixed bottom-4 left-1/2 -translate-x-1/2 glass-hud rounded-2xl p-2 flex gap-2 z-20 hidden">
-        <button onclick="eatBerry()" class="btn-press flex flex-col items-center justify-center px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 border border-rose-400/30 text-white min-w-[66px]">
-            <span class="text-base">🍒</span>
-            <span class="text-[11px] font-bold">කන්න</span>
-            <span class="text-[9px] text-rose-200">[1] පලතුරු</span>
+    <!-- Bottom-Center: 6-Slot Quick Hotbar -->
+    <div id="hud-bottom" class="fixed bottom-3 left-1/2 -translate-x-1/2 glass-hud rounded-2xl p-1.5 flex items-center gap-1.5 z-20 hidden">
+        <button onclick="selectHotbarSlot(0)" id="slot-0" class="hotbar-slot selected relative flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 border border-white/15 text-white">
+            <span class="absolute top-0.5 left-1.5 text-[9px] font-bold text-gray-400">1</span>
+            <span class="text-lg">👊</span>
+            <span class="text-[9px] font-bold">අත</span>
         </button>
 
-        <button onclick="craftCampfire()" class="btn-press flex flex-col items-center justify-center px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/30 text-white min-w-[74px]">
-            <span class="text-base">🔥</span>
-            <span class="text-[11px] font-bold">ගිනි මැලය</span>
-            <span class="text-[9px] text-amber-200">[2 / E] 🪵5 🪨2</span>
+        <button onclick="selectHotbarSlot(1)" id="slot-1" class="hotbar-slot relative flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 border border-white/15 text-white opacity-45">
+            <span class="absolute top-0.5 left-1.5 text-[9px] font-bold text-gray-400">2</span>
+            <span class="text-lg">🪓</span>
+            <span class="text-[9px] font-bold">පොරව</span>
         </button>
 
-        <button onclick="craftAxe()" id="btn-craft-axe" class="btn-press flex flex-col items-center justify-center px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-400/30 text-white min-w-[74px]">
-            <span class="text-base">🪓</span>
-            <span class="text-[11px] font-bold">පොරව</span>
-            <span class="text-[9px] text-emerald-200">[3] 🪵3 🪨2</span>
+        <button onclick="selectHotbarSlot(2)" id="slot-2" class="hotbar-slot relative flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 border border-white/15 text-white opacity-45">
+            <span class="absolute top-0.5 left-1.5 text-[9px] font-bold text-gray-400">3</span>
+            <span class="text-lg">🔱</span>
+            <span class="text-[9px] font-bold">හෙල්ල</span>
         </button>
 
-        <button onclick="craftSpear()" id="btn-craft-spear" class="btn-press flex flex-col items-center justify-center px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/30 text-white min-w-[74px]">
-            <span class="text-base">🔱</span>
-            <span class="text-[11px] font-bold">හෙල්ල</span>
-            <span class="text-[9px] text-cyan-200">[4] 🪵4 🪨3</span>
+        <button onclick="selectHotbarSlot(3)" id="slot-3" class="hotbar-slot relative flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 border border-white/15 text-white opacity-45">
+            <span class="absolute top-0.5 left-1.5 text-[9px] font-bold text-gray-400">4</span>
+            <span id="slot-3-count" class="absolute top-0.5 right-1.5 text-[9px] font-extrabold text-amber-300">0</span>
+            <span class="text-lg">🔦</span>
+            <span class="text-[9px] font-bold">පන්දම</span>
+        </button>
+
+        <button onclick="selectHotbarSlot(4)" id="slot-4" class="hotbar-slot relative flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 border border-white/15 text-white">
+            <span class="absolute top-0.5 left-1.5 text-[9px] font-bold text-gray-400">5</span>
+            <span id="slot-4-count" class="absolute top-0.5 right-1.5 text-[9px] font-extrabold text-rose-300">2</span>
+            <span class="text-lg">🍒</span>
+            <span class="text-[9px] font-bold">පලතුරු</span>
+        </button>
+
+        <button onclick="selectHotbarSlot(5)" id="slot-5" class="hotbar-slot relative flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/5 border border-white/15 text-white opacity-45">
+            <span class="absolute top-0.5 left-1.5 text-[9px] font-bold text-gray-400">6</span>
+            <span id="slot-5-count" class="absolute top-0.5 right-1.5 text-[9px] font-extrabold text-emerald-300">0</span>
+            <span class="text-lg">🩹</span>
+            <span class="text-[9px] font-bold">බෙහෙත්</span>
         </button>
     </div>
 
-    <!-- Mobile Touch Controls -->
+    <!-- INTERACTIVE CRAFTING BOOK MODAL (නිර්මාණ පොත) -->
+    <div id="crafting-book-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 z-40 hidden">
+        <div class="craft-book-modal max-w-4xl w-full max-h-[88vh] rounded-3xl p-4 sm:p-6 flex flex-col text-stone-100">
+            
+            <!-- Book Header -->
+            <div class="flex justify-between items-center pb-3 mb-3 border-b border-amber-700/40">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">📖</span>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-amber-300">
+                            නිර්මාණ පොත (Survival Crafting Book)
+                        </h2>
+                        <p class="text-[11px] text-amber-100/75">
+                            ඔබ එකතු කළ ද්‍රව්‍ය භාවිතයෙන් නව ආයුධ, පන්දම්, ගිනි මැල සහ ඖෂධ සාදන්න.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Live Resource Summary inside Book -->
+                <div class="hidden md:flex items-center gap-3 bg-black/45 px-3.5 py-2 rounded-2xl border border-amber-500/20 text-xs font-bold">
+                    <span>🪵 <span id="book-wood" class="text-amber-300">0</span></span>
+                    <span>🪨 <span id="book-stone" class="text-stone-300">0</span></span>
+                    <span>🍒 <span id="book-berries" class="text-rose-300">0</span></span>
+                    <span>🥩 <span id="book-meat" class="text-red-300">0</span></span>
+                </div>
+
+                <button onclick="toggleCraftingBook(false)" class="btn-press w-9 h-9 rounded-full bg-rose-600/80 hover:bg-rose-500 text-white font-extrabold flex items-center justify-center shadow-lg">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
+                <button onclick="setCraftTab('ALL')" id="tab-ALL" class="craft-tab px-4 py-1.5 rounded-xl text-xs font-extrabold bg-amber-600 text-white shadow">
+                    සියල්ල (All)
+                </button>
+                <button onclick="setCraftTab('TOOLS')" id="tab-TOOLS" class="craft-tab px-4 py-1.5 rounded-xl text-xs font-extrabold bg-white/10 hover:bg-white/20 text-amber-100">
+                    ⚔️ ආයුධ (Tools & Weapons)
+                </button>
+                <button onclick="setCraftTab('CAMP')" id="tab-CAMP" class="craft-tab px-4 py-1.5 rounded-xl text-xs font-extrabold bg-white/10 hover:bg-white/20 text-amber-100">
+                    🔥 කඳවුරු සහ ගින්න (Camp & Light)
+                </button>
+                <button onclick="setCraftTab('FOOD')" id="tab-FOOD" class="craft-tab px-4 py-1.5 rounded-xl text-xs font-extrabold bg-white/10 hover:bg-white/20 text-amber-100">
+                    🍖 ආහාර සහ බෙහෙත් (Food & Meds)
+                </button>
+            </div>
+
+            <!-- Recipes Grid -->
+            <div id="crafting-recipes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Landscape Touch Controls -->
     <div id="mobile-ui" class="hidden">
         <div id="touch-joystick-zone">
             <div id="touch-joystick-knob"></div>
         </div>
-        <div class="fixed bottom-6 right-5 flex flex-col gap-3 z-20">
-            <button id="touch-jump" class="btn-press w-14 h-14 rounded-full glass-hud border border-white/30 flex flex-col items-center justify-center text-white shadow-lg">
+        <div class="fixed bottom-4 right-4 flex items-end gap-2.5 z-20">
+            <button id="touch-jump" class="btn-press w-13 h-13 p-3 rounded-full glass-hud border border-white/30 flex flex-col items-center justify-center text-white shadow-lg">
                 <span class="text-base">⬆️</span>
                 <span class="text-[9px] font-bold">පනින්න</span>
             </button>
-            <button id="touch-attack" class="btn-press w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 border-2 border-amber-200/70 flex flex-col items-center justify-center text-white shadow-xl">
+            <button id="touch-attack" class="btn-press w-18 h-18 p-4 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 border-2 border-amber-200/70 flex flex-col items-center justify-center text-white shadow-xl">
                 <span class="text-2xl">🪓</span>
-                <span class="text-[10px] font-extrabold">ක්‍රියා කරන්න</span>
+                <span class="text-[10px] font-extrabold">ක්‍රියා / භාවිත</span>
             </button>
         </div>
     </div>
 
-    <!-- Start Screen Overlay -->
+    <!-- Start Screen Overlay (Landscape Friendly) -->
     <div id="start-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-30">
-        <div class="glass-hud max-w-lg w-full rounded-3xl p-6 sm:p-8 text-center border border-emerald-500/30">
-            <div class="text-5xl mb-3">🌲🔥🐺</div>
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-amber-200 to-orange-400 mb-2">
-                වනාන්තර පැවැත්ම 3D
+        <div class="glass-hud max-w-2xl w-full rounded-3xl p-5 sm:p-7 text-center border border-emerald-500/30">
+            <div class="text-4xl mb-2">🌲🔥🐺📖</div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-amber-200 to-orange-400 mb-2">
+                වනාන්තර පැවැත්ම 3D (Wild Survival)
             </h1>
-            <p class="text-xs sm:text-sm text-gray-300 mb-5 leading-relaxed">
-                ත්‍රිමාණ (3D First-Person) වනාන්තර දූපතක තනිවූ ඔබ, දහවල් කාලයේ ගස් කපා දර, ගල්, පලතුරු සහ පොකුණෙන් ජලය එකතු කරගන්න. රාත්‍රී අඳුර වැටුණු විට ගිනි මැලයක් දල්වා දිලිසෙන ඇස් ඇති වෘකයන්ගෙන් ආරක්ෂා වන්න!
+            <p class="text-xs sm:text-sm text-gray-300 mb-4 leading-relaxed max-w-xl mx-auto">
+                ත්‍රිමාණ (3D First-Person) වනාන්තර දූපතක තනිවූ ඔබ, ගස් කපා දර, ගල් සහ පලතුරු එකතු කරගන්න. <strong>නිර්මාණ පොත (Crafting Book)</strong> විවෘත කර පොරව, හෙල්ල, අතේ ගෙන යන 3D පන්දම (Torch) සහ ඖෂධ සාදා රාත්‍රී වෘකයන්ගෙන් බේරී ජීවත් වන්න!
             </p>
 
-            <div class="grid grid-cols-2 gap-2.5 text-left bg-black/45 p-4 rounded-2xl mb-6 text-xs text-gray-200 border border-white/10">
-                <div><span class="text-amber-400 font-bold">W A S D:</span> ඇවිදින්න (Walk)</div>
-                <div><span class="text-amber-400 font-bold">Mouse:</span> වටපිට බලන්න (Look)</div>
-                <div><span class="text-amber-400 font-bold">Shift / Space:</span> දුවන්න / පනින්න</div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-left bg-black/45 p-3.5 rounded-2xl mb-5 text-[11px] sm:text-xs text-gray-200 border border-white/10">
+                <div><span class="text-amber-400 font-bold">W A S D:</span> ඇවිදින්න</div>
+                <div><span class="text-amber-400 font-bold">Mouse / Swipe:</span> වටපිට බලන්න</div>
                 <div><span class="text-amber-400 font-bold">Left Click:</span> කපන්න / පහර දෙන්න</div>
-                <div><span class="text-amber-400 font-bold">1, 2, 3, 4 / E:</span> කන්න, ගිනි මැල හා ආයුධ</div>
-                <div><span class="text-amber-400 font-bold">Mobile:</span> Touch Joystick + Swipe</div>
+                <div><span class="text-amber-400 font-bold">1 - 6 Keys:</span> Hotbar තෝරන්න</div>
+                <div><span class="text-amber-400 font-bold">C Key:</span> නිර්මාණ පොත (Book)</div>
+                <div><span class="text-amber-400 font-bold">Shift / Space:</span> දුවන්න / පනින්න</div>
             </div>
 
-            <button onclick="startGame()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-lg shadow-lg shadow-emerald-950/60 transition transform hover:scale-[1.02] active:scale-[0.98]">
-                ක්‍රීඩාව අරඹන්න (Start Game) ▶
+            <button onclick="startGame()" class="w-full max-w-md py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-base sm:text-lg shadow-lg shadow-emerald-950/60 transition transform hover:scale-[1.02] active:scale-[0.98]">
+                ක්‍රීඩාව අරඹන්න (Start Landscape 3D) ▶
             </button>
         </div>
     </div>
 
     <!-- Game Over Overlay -->
     <div id="gameover-overlay" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-30 hidden">
-        <div class="glass-hud max-w-md w-full rounded-3xl p-8 text-center border border-rose-500/40">
-            <div class="text-5xl mb-3">💀</div>
-            <h2 class="text-3xl font-extrabold text-rose-400 mb-2">ඔබ පරාජය විය!</h2>
-            <p id="death-reason" class="text-sm text-gray-300 mb-6">වනාන්තරයේ දරුණු තත්වයන්ට ගොදුරු විය.</p>
+        <div class="glass-hud max-w-md w-full rounded-3xl p-6 text-center border border-rose-500/40">
+            <div class="text-4xl mb-2">💀</div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-rose-400 mb-1">ඔබ පරාජය විය!</h2>
+            <p id="death-reason" class="text-xs sm:text-sm text-gray-300 mb-4">වනාන්තරයේ දරුණු තත්වයන්ට ගොදුරු විය.</p>
 
-            <div class="bg-black/50 rounded-2xl p-4 mb-6 flex justify-around border border-white/10">
+            <div class="bg-black/50 rounded-2xl p-3.5 mb-5 flex justify-around border border-white/10">
                 <div>
                     <div class="text-xs text-gray-400">ජීවත් වූ දින</div>
                     <div id="final-days" class="text-2xl font-extrabold text-amber-300">1</div>
@@ -302,7 +432,7 @@
                 </div>
             </div>
 
-            <button onclick="startGame()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-600 hover:from-rose-400 hover:to-orange-500 text-white font-extrabold text-lg shadow-lg transition transform hover:scale-[1.02]">
+            <button onclick="startGame()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-600 hover:from-rose-400 hover:to-orange-500 text-white font-extrabold text-base shadow-lg transition transform hover:scale-[1.02]">
                 නැවත සෙල්ලම් කරන්න ↻
             </button>
         </div>
@@ -311,9 +441,16 @@
     <script>
         /**
          * ============================================================================
-         * 3D FIRST-PERSON FOREST SURVIVAL ENGINE (Three.js + Procedural Web Audio)
+         * 3D FIRST-PERSON FOREST SURVIVAL ENGINE (Landscape + Interactive Crafting Book)
          * ============================================================================
          */
+
+        // Portrait Warning Dismiss
+        function dismissPortraitWarning() {
+            const el = document.getElementById('portrait-warning');
+            el.classList.remove('enforce-landscape');
+            el.style.display = 'none';
+        }
 
         // --- 1. PROCEDURAL WEB AUDIO SYNTHESIZER ---
         let audioCtx = null;
@@ -536,16 +673,57 @@
         spearGroup.visible = false;
         armGroup.add(spearGroup);
 
+        // 3D Hand Torch Mesh + Dynamic PointLight (attached to hand)
+        const torchGroup = new THREE.Group();
+        const torchStick = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.028, 0.55, 8), handleMat);
+        torchStick.rotation.x = Math.PI * 0.12;
+        torchStick.position.set(0, 0.14, -0.12);
+        torchGroup.add(torchStick);
+
+        const torchHead = new THREE.Mesh(
+            new THREE.SphereGeometry(0.055, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xff9800 })
+        );
+        torchHead.position.set(0, 0.41, -0.22);
+        torchGroup.add(torchHead);
+
+        const handTorchLight = new THREE.PointLight(0xff8c1a, 0, 16);
+        handTorchLight.position.set(0, 0.55, -0.35);
+        torchGroup.add(handTorchLight);
+        torchGroup.visible = false;
+        armGroup.add(torchGroup);
+
+        // 3D Consumable Item in Hand (Berry / Bandage)
+        const consumableGroup = new THREE.Group();
+        const heldBerryMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.065, 10, 10),
+            new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.3 })
+        );
+        heldBerryMesh.position.set(0, 0.08, -0.12);
+        consumableGroup.add(heldBerryMesh);
+
+        const heldBandageMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.06, 0.06, 0.11, 10),
+            new THREE.MeshStandardMaterial({ color: 0xa7f3d0, roughness: 0.7 })
+        );
+        heldBandageMesh.rotation.z = Math.PI * 0.5;
+        heldBandageMesh.position.set(0, 0.08, -0.12);
+        consumableGroup.add(heldBandageMesh);
+        consumableGroup.visible = false;
+        armGroup.add(consumableGroup);
+
         viewmodelGroup.add(armGroup);
         viewmodelGroup.position.set(0.36, -0.32, -0.45);
 
-        // --- 4. GAME STATE & PLAYER VARIABLES ---
+        // --- 4. GAME STATE, HOTBAR & CRAFTING BOOK RECIPES ---
         const ISLAND_RADIUS = 88;
         let gameState = 'START';
+        let isCraftingOpen = false;
+        let currentCraftTab = 'ALL';
         let lastTime = 0;
         let score = 0;
         let dayCount = 1;
-        let timeOfDay = 0.25; // 0.0-0.55 Day, 0.55-0.65 Sunset, 0.65-0.95 Night
+        let timeOfDay = 0.25;
         const DAY_LENGTH_SEC = 85;
 
         const player = {
@@ -561,12 +739,129 @@
             wood: 2,
             stone: 1,
             berries: 2,
-            weapon: 'HAND', // 'HAND', 'AXE', 'SPEAR'
+            rawMeat: 0,
+            torches: 0,
+            torchFuel: 100,
+            bandages: 0,
+            hasAxe: false,
+            hasSpear: false,
+            selectedSlot: 0, // 0: Hand, 1: Axe, 2: Spear, 3: Torch, 4: Berries, 5: Bandage/Meds
             swingTimer: 0,
             swingCooldown: 0,
             bobTimer: 0,
             stepTimer: 0
         };
+
+        // Complete Crafting Book Recipes Database
+        const CRAFTING_RECIPES = [
+            {
+                id: 'axe',
+                category: 'TOOLS',
+                icon: '🪓',
+                nameSi: 'ගල් පොරව',
+                nameEn: 'Stone Axe',
+                desc: 'ගස් කැපීම සහ ගල් කැඩීම දෙගුණයකින් වේගවත් කරයි. (Hotbar [2])',
+                cost: { wood: 3, stone: 2 },
+                oneTime: true,
+                isOwned: () => player.hasAxe,
+                craft: () => {
+                    player.hasAxe = true;
+                    selectHotbarSlot(1);
+                    score += 100;
+                    showToast('🪓 ගල් පොරව සෑදුවා! Hotbar [2] තෝරා ගන්නා ලදී.');
+                }
+            },
+            {
+                id: 'spear',
+                category: 'TOOLS',
+                icon: '🔱',
+                nameSi: 'දඩයම් හෙල්ල',
+                nameEn: 'Hunting Spear',
+                desc: 'රාත්‍රී වෘකයන්ට දැඩි ප්‍රහාර (50 DMG) එල්ල කළ හැකි දිගු ආයුධයකි. (Hotbar [3])',
+                cost: { wood: 4, stone: 2 },
+                oneTime: true,
+                isOwned: () => player.hasSpear,
+                craft: () => {
+                    player.hasSpear = true;
+                    selectHotbarSlot(2);
+                    score += 180;
+                    showToast('🔱 දඩයම් හෙල්ල සෑදුවා! Hotbar [3] තෝරා ගන්නා ලදී.');
+                }
+            },
+            {
+                id: 'torch',
+                category: 'CAMP',
+                icon: '🔦',
+                nameSi: 'අත් පන්දම',
+                nameEn: 'Hand Torch',
+                desc: 'අඳුරු වනාන්තරයේ ඇවිදින විට ආලෝකය ලබා දෙයි. (Hotbar [4])',
+                cost: { wood: 2, berries: 1 },
+                oneTime: false,
+                isOwned: () => false,
+                craft: () => {
+                    player.torches += 1;
+                    player.torchFuel = 100;
+                    selectHotbarSlot(3);
+                    score += 60;
+                    showToast('🔦 අත් පන්දමක් සෑදුවා! රාත්‍රියේ ආලෝකය සඳහා [4] භාවිතා කරන්න.');
+                }
+            },
+            {
+                id: 'campfire',
+                category: 'CAMP',
+                icon: '🔥',
+                nameSi: 'ගිනි මැලය',
+                nameEn: 'Campfire',
+                desc: 'ඔබ ඉදිරියෙන් ගිනි මැලයක් දල්වයි. සෞඛ්‍යය වැඩි කර වෘකයන් පලවා හරියි.',
+                cost: { wood: 5, stone: 2 },
+                oneTime: false,
+                isOwned: () => false,
+                craft: () => {
+                    const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+                    const fx = player.pos.x + forward.x * 2.6;
+                    const fz = player.pos.z + forward.z * 2.6;
+                    spawnCampfireAt(fx, fz, 100);
+                    score += 90;
+                    toggleCraftingBook(false);
+                    showToast('🔥 ඔබ ඉදිරියෙන් නව ගිනි මැලයක් දල්වන ලදී!');
+                }
+            },
+            {
+                id: 'bandage',
+                category: 'FOOD',
+                icon: '🩹',
+                nameSi: 'ඖෂධ වෙළුම් පටි',
+                nameEn: 'Herbal Bandage',
+                desc: 'තුවාල සුව කර සෞඛ්‍යය (+45 HP) ක්ෂණිකව වැඩි කරයි. (Hotbar [6])',
+                cost: { berries: 3, wood: 1 },
+                oneTime: false,
+                isOwned: () => false,
+                craft: () => {
+                    player.bandages += 1;
+                    selectHotbarSlot(5);
+                    score += 50;
+                    showToast('🩹 ඖෂධ වෙළුම් පටියක් සෑදුවා! [6] තෝරා Click කර භාවිතා කරන්න.');
+                }
+            },
+            {
+                id: 'cooked_meat',
+                category: 'FOOD',
+                icon: '🍖',
+                nameSi: 'පිසූ වෘක මස්',
+                nameEn: 'Cooked Meat Feast',
+                desc: 'වෘකයන්ගෙන් ලබාගත් මස් පිස ආහාරයට ගැනීමෙන් කුසගින්න (+65) සහ HP (+30) ලැබේ.',
+                cost: { rawMeat: 1, wood: 1 },
+                oneTime: false,
+                isOwned: () => false,
+                craft: () => {
+                    player.hunger = Math.min(100, player.hunger + 65);
+                    player.hp = Math.min(100, player.hp + 30);
+                    playSFX('berry');
+                    score += 120;
+                    showToast('🍖 පිසූ මස් අනුභව කළා! (+65 කුසගින්න | +30 ❤️)');
+                }
+            }
+        ];
 
         // World Object Arrays
         let worldMeshes = []; // Cleaned on restart
@@ -961,7 +1256,7 @@
         }
 
         function requestPointerLockSafe() {
-            if (isTouch || gameState !== 'PLAYING') return;
+            if (isTouch || gameState !== 'PLAYING' || isCraftingOpen) return;
             try {
                 renderer.domElement.requestPointerLock();
             } catch (e) {}
@@ -970,13 +1265,15 @@
         document.addEventListener('pointerlockchange', () => {
             const locked = document.pointerLockElement === renderer.domElement;
             const banner = document.getElementById('lock-banner');
-            if (gameState === 'PLAYING' && !isTouch) {
+            if (gameState === 'PLAYING' && !isTouch && !isCraftingOpen) {
                 banner.classList.toggle('hidden', locked);
+            } else {
+                banner.classList.add('hidden');
             }
         });
 
         document.addEventListener('mousemove', (e) => {
-            if (gameState !== 'PLAYING') return;
+            if (gameState !== 'PLAYING' || isCraftingOpen) return;
             if (document.pointerLockElement === renderer.domElement) {
                 const sensitivity = 0.0023;
                 player.yaw -= e.movementX * sensitivity;
@@ -989,17 +1286,35 @@
             keys[e.code] = true;
             if (gameState !== 'PLAYING') return;
 
+            if (e.code === 'KeyC' || e.code === 'KeyB') {
+                e.preventDefault();
+                toggleCraftingBook();
+                return;
+            }
+
+            if (isCraftingOpen) {
+                if (e.code === 'Escape') toggleCraftingBook(false);
+                return;
+            }
+
             if (e.code === 'Space' && player.onGround) {
                 player.vel.y = 7.2;
                 player.onGround = false;
             } else if (e.code === 'Digit1') {
-                eatBerry();
-            } else if (e.code === 'Digit2' || e.code === 'KeyE') {
-                craftCampfire();
+                selectHotbarSlot(0);
+            } else if (e.code === 'Digit2') {
+                selectHotbarSlot(1);
             } else if (e.code === 'Digit3') {
-                craftAxe();
+                selectHotbarSlot(2);
             } else if (e.code === 'Digit4') {
-                craftSpear();
+                selectHotbarSlot(3);
+            } else if (e.code === 'Digit5') {
+                selectHotbarSlot(4);
+            } else if (e.code === 'Digit6') {
+                selectHotbarSlot(5);
+            } else if (e.code === 'KeyE') {
+                // Quick refuel campfire if looking/standing near one
+                refuelNearbyCampfire();
             }
         });
 
@@ -1008,7 +1323,7 @@
         });
 
         renderer.domElement.addEventListener('mousedown', (e) => {
-            if (gameState !== 'PLAYING') return;
+            if (gameState !== 'PLAYING' || isCraftingOpen) return;
             initAudio();
             if (!isTouch && document.pointerLockElement !== renderer.domElement) {
                 requestPointerLockSafe();
@@ -1020,105 +1335,193 @@
         });
 
         // Mobile Touch Joystick & Swipe Look
-        const joyZone = document.getElementById('touch-joystick-zone');
-        const joyKnob = document.getElementById('touch-joystick-knob');
-        const touchMove = { active: false, x: 0, y: 0, ox: 0, oy: 0 };
-
-        joyZone.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            initAudio();
-            const t = e.changedTouches[0];
-            const rect = joyZone.getBoundingClientRect();
-            touchMove.active = true;
-            touchMove.ox = rect.left + rect.width / 2;
-            touchMove.oy = rect.top + rect.height / 2;
-            moveJoy(t.clientX, t.clientY);
-        }, { passive: false });
-
-        joyZone.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (!touchMove.active) return;
-            const t = e.changedTouches[0];
-            moveJoy(t.clientX, t.clientY);
-        }, { passive: false });
-
-        joyZone.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            touchMove.active = false;
-            touchMove.x = 0;
-            touchMove.y = 0;
-            joyKnob.style.transform = `translate(0px, 0px)`;
-        }, { passive: false });
-
-        function moveJoy(cx, cy) {
-            const maxR = 38;
-            let dx = cx - touchMove.ox;
-            let dy = cy - touchMove.oy;
-            const d = Math.hypot(dx, dy);
-            if (d > maxR) {
-                dx = (dx / d) * maxR;
-                dy = (dy / d) * maxR;
+        // --- 7. HOTBAR SELECTION, CRAFTING BOOK, INTERACTION & COMBAT ---
+        function selectHotbarSlot(slotIdx) {
+            if (slotIdx === 1 && !player.hasAxe) {
+                showToast('🔒 ගල් පොරව තවම සාදා නැත! [C] නිර්මාණ පොත බලන්න.');
+                return;
             }
-            joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-            touchMove.x = dx / maxR;
-            touchMove.y = dy / maxR;
+            if (slotIdx === 2 && !player.hasSpear) {
+                showToast('🔒 දඩයම් හෙල්ල තවම සාදා නැත! [C] නිර්මාණ පොත බලන්න.');
+                return;
+            }
+            if (slotIdx === 3 && player.torches <= 0) {
+                showToast('🔒 ඔබ ළඟ පන්දම් නැත! [C] නිර්මාණ පොතෙන් සාදාගන්න.');
+                return;
+            }
+            if (slotIdx === 4 && player.berries <= 0) {
+                showToast('🔒 පලතුරු නැත! පඳුරු වලින් කඩාගන්න.');
+                return;
+            }
+            if (slotIdx === 5 && player.bandages <= 0) {
+                showToast('🔒 ඖෂධ වෙළුම් පටි නැත! [C] නිර්මාණ පොතෙන් සාදාගන්න.');
+                return;
+            }
+
+            player.selectedSlot = slotIdx;
+            updateViewmodelVisibility();
+            updateHUD();
         }
 
-        // Touch Swipe Camera Look on Canvas
-        let lookTouchId = null;
-        let lastLookX = 0;
-        let lastLookY = 0;
+        function updateViewmodelVisibility() {
+            axeGroup.visible = (player.selectedSlot === 1 && player.hasAxe);
+            spearGroup.visible = (player.selectedSlot === 2 && player.hasSpear);
+            torchGroup.visible = (player.selectedSlot === 3 && player.torches > 0);
+            handTorchLight.intensity = torchGroup.visible ? 2.4 : 0;
 
-        renderer.domElement.addEventListener('touchstart', (e) => {
+            consumableGroup.visible = (player.selectedSlot === 4 && player.berries > 0) || (player.selectedSlot === 5 && player.bandages > 0);
+            heldBerryMesh.visible = (player.selectedSlot === 4);
+            heldBandageMesh.visible = (player.selectedSlot === 5);
+        }
+
+        function toggleCraftingBook(forceState) {
             if (gameState !== 'PLAYING') return;
             initAudio();
-            for (let t of e.changedTouches) {
-                if (lookTouchId === null) {
-                    lookTouchId = t.identifier;
-                    lastLookX = t.clientX;
-                    lastLookY = t.clientY;
+            isCraftingOpen = (typeof forceState === 'boolean') ? forceState : !isCraftingOpen;
+            const modal = document.getElementById('crafting-book-modal');
+
+            if (isCraftingOpen) {
+                if (document.pointerLockElement) {
+                    try { document.exitPointerLock(); } catch (e) {}
+                }
+                document.getElementById('lock-banner').classList.add('hidden');
+                renderCraftingBook();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+                requestPointerLockSafe();
+            }
+        }
+
+        function setCraftTab(tab) {
+            currentCraftTab = tab;
+            document.querySelectorAll('.craft-tab').forEach(btn => {
+                btn.classList.remove('bg-amber-600', 'text-white', 'shadow');
+                btn.classList.add('bg-white/10', 'text-amber-100');
+            });
+            const activeBtn = document.getElementById('tab-' + tab);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-white/10', 'text-amber-100');
+                activeBtn.classList.add('bg-amber-600', 'text-white', 'shadow');
+            }
+            renderCraftingBook();
+        }
+
+        function canAffordRecipe(cost) {
+            if (cost.wood && player.wood < cost.wood) return false;
+            if (cost.stone && player.stone < cost.stone) return false;
+            if (cost.berries && player.berries < cost.berries) return false;
+            if (cost.rawMeat && player.rawMeat < cost.rawMeat) return false;
+            return true;
+        }
+
+        function renderCraftingBook() {
+            document.getElementById('book-wood').textContent = player.wood;
+            document.getElementById('book-stone').textContent = player.stone;
+            document.getElementById('book-berries').textContent = player.berries;
+            document.getElementById('book-meat').textContent = player.rawMeat;
+
+            const grid = document.getElementById('crafting-recipes-grid');
+            grid.innerHTML = '';
+
+            const filtered = CRAFTING_RECIPES.filter(r => currentCraftTab === 'ALL' || r.category === currentCraftTab);
+
+            for (let recipe of filtered) {
+                const owned = recipe.isOwned();
+                const affordable = canAffordRecipe(recipe.cost);
+
+                // Format ingredient pills with live green/red availability check
+                let costHTML = '';
+                if (recipe.cost.wood) {
+                    const ok = player.wood >= recipe.cost.wood;
+                    costHTML += `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${ok ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-rose-950/80 text-rose-300 border border-rose-500/30'}">🪵 ${player.wood}/${recipe.cost.wood}</span>`;
+                }
+                if (recipe.cost.stone) {
+                    const ok = player.stone >= recipe.cost.stone;
+                    costHTML += `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${ok ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-rose-950/80 text-rose-300 border border-rose-500/30'}">🪨 ${player.stone}/${recipe.cost.stone}</span>`;
+                }
+                if (recipe.cost.berries) {
+                    const ok = player.berries >= recipe.cost.berries;
+                    costHTML += `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${ok ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-rose-950/80 text-rose-300 border border-rose-500/30'}">🍒 ${player.berries}/${recipe.cost.berries}</span>`;
+                }
+                if (recipe.cost.rawMeat) {
+                    const ok = player.rawMeat >= recipe.cost.rawMeat;
+                    costHTML += `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${ok ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-rose-950/80 text-rose-300 border border-rose-500/30'}">🥩 ${player.rawMeat}/${recipe.cost.rawMeat}</span>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'parchment-card rounded-2xl p-3.5 flex flex-col justify-between gap-2.5';
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-2.5 mb-1.5">
+                            <div class="w-10 h-10 rounded-xl bg-black/45 border border-amber-500/25 flex items-center justify-center text-2xl">
+                                ${recipe.icon}
+                            </div>
+                            <div>
+                                <div class="text-sm font-extrabold text-amber-200">${recipe.nameSi}</div>
+                                <div class="text-[10px] font-semibold text-amber-100/60">${recipe.nameEn}</div>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-stone-200/85 leading-snug mb-2.5">
+                            ${recipe.desc}
+                        </p>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap gap-1.5 mb-2.5">
+                            ${costHTML}
+                        </div>
+                        <button
+                            onclick="executeCraft('${recipe.id}')"
+                            ${owned || !affordable ? 'disabled' : ''}
+                            class="w-full py-2 rounded-xl text-xs font-extrabold transition ${
+                                owned
+                                    ? 'bg-emerald-800/40 text-emerald-300 border border-emerald-500/30 cursor-default'
+                                    : affordable
+                                        ? 'btn-press bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white shadow-md'
+                                        : 'bg-white/5 text-stone-500 border border-white/10 cursor-not-allowed'
+                            }">
+                            ${owned ? '✅ සාදා ඇත (Crafted)' : affordable ? '🔨 සාදන්න (Craft)' : 'අවශ්‍ය ද්‍රව්‍ය මදි'}
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function executeCraft(recipeId) {
+            const recipe = CRAFTING_RECIPES.find(r => r.id === recipeId);
+            if (!recipe || recipe.isOwned() || !canAffordRecipe(recipe.cost)) return;
+
+            // Deduct resources
+            if (recipe.cost.wood) player.wood -= recipe.cost.wood;
+            if (recipe.cost.stone) player.stone -= recipe.cost.stone;
+            if (recipe.cost.berries) player.berries -= recipe.cost.berries;
+            if (recipe.cost.rawMeat) player.rawMeat -= recipe.cost.rawMeat;
+
+            playSFX('craft');
+            recipe.craft();
+            updateViewmodelVisibility();
+            updateHUD();
+            if (isCraftingOpen) renderCraftingBook();
+        }
+
+        function refuelNearbyCampfire() {
+            for (let cf of campfires) {
+                if (Math.hypot(player.pos.x - cf.x, player.pos.z - cf.z) < 3.6) {
+                    if (player.wood >= 2) {
+                        player.wood -= 2;
+                        cf.fuel = Math.min(100, cf.fuel + 55);
+                        playSFX('craft');
+                        showToast('🔥 ගිනි මැලයට දර 2ක් දමා අලුත් කළා!');
+                        updateHUD();
+                    } else {
+                        showToast('❌ ගිනි මැලයට දැමීමට දර 2ක් අවශ්‍යයි.');
+                    }
+                    return;
                 }
             }
-        }, { passive: false });
+        }
 
-        renderer.domElement.addEventListener('touchmove', (e) => {
-            if (gameState !== 'PLAYING') return;
-            for (let t of e.changedTouches) {
-                if (t.identifier === lookTouchId) {
-                    const dx = t.clientX - lastLookX;
-                    const dy = t.clientY - lastLookY;
-                    lastLookX = t.clientX;
-                    lastLookY = t.clientY;
-                    player.yaw -= dx * 0.0055;
-                    player.pitch -= dy * 0.0045;
-                    player.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, player.pitch));
-                }
-            }
-        }, { passive: false });
-
-        renderer.domElement.addEventListener('touchend', (e) => {
-            for (let t of e.changedTouches) {
-                if (t.identifier === lookTouchId) {
-                    lookTouchId = null;
-                }
-            }
-        });
-
-        document.getElementById('touch-attack').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            initAudio();
-            performPrimaryAction();
-        }, { passive: false });
-
-        document.getElementById('touch-jump').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (player.onGround) {
-                player.vel.y = 7.2;
-                player.onGround = false;
-            }
-        }, { passive: false });
-
-        // --- 7. INTERACTION, COMBAT & CRAFTING ---
         function showToast(text) {
             const el = document.getElementById('toast-msg');
             el.textContent = text;
@@ -1129,6 +1532,40 @@
 
         function performPrimaryAction() {
             if (player.swingCooldown > 0) return;
+
+            // If holding Berry (Slot 4) -> Eat Berry
+            if (player.selectedSlot === 4) {
+                if (player.berries > 0) {
+                    player.berries--;
+                    player.hunger = Math.min(100, player.hunger + 30);
+                    player.hp = Math.min(100, player.hp + 10);
+                    player.swingTimer = 0.2;
+                    player.swingCooldown = 0.35;
+                    playSFX('berry');
+                    showToast('🍒 පලතුරක් අනුභව කළා (+30 කුසගින්න | +10 ❤️)');
+                    if (player.berries === 0) selectHotbarSlot(0);
+                    updateViewmodelVisibility();
+                    updateHUD();
+                }
+                return;
+            }
+
+            // If holding Herbal Bandage (Slot 5) -> Heal Health
+            if (player.selectedSlot === 5) {
+                if (player.bandages > 0) {
+                    player.bandages--;
+                    player.hp = Math.min(100, player.hp + 45);
+                    player.swingTimer = 0.2;
+                    player.swingCooldown = 0.35;
+                    playSFX('craft');
+                    showToast('🩹 ඖෂධ වෙළුම් පටි භාවිතා කළා (+45 ❤️ සෞඛ්‍යය)');
+                    if (player.bandages === 0) selectHotbarSlot(0);
+                    updateViewmodelVisibility();
+                    updateHUD();
+                }
+                return;
+            }
+
             player.swingTimer = 0.24;
             player.swingCooldown = 0.34;
             playSFX('swing');
@@ -1142,18 +1579,18 @@
             if (data.type === 'TREE') {
                 const tree = data.ref;
                 if (tree.hp <= 0) return;
-                const power = player.weapon === 'AXE' ? 45 : (player.weapon === 'SPEAR' ? 30 : 18);
+                const power = player.selectedSlot === 1 ? 48 : (player.selectedSlot === 2 ? 28 : 18);
                 tree.hp -= power;
                 playSFX('chop');
                 spawn3DParticles(hitPoint, 0x78350f, 8);
-                const gained = player.weapon === 'AXE' ? 2 : 1;
+                const gained = player.selectedSlot === 1 ? 2 : 1;
                 player.wood += gained;
                 score += 10;
                 showToast(`+${gained} 🪵 දර එකතු කරගත්තා`);
 
                 if (tree.hp <= 0) {
                     tree.group.visible = false;
-                    tree.hitMesh.layers.set(2); // Disable raycast while felled
+                    tree.hitMesh.layers.set(2);
                     tree.respawnTimer = 45;
                     player.wood += 2;
                     showToast('🌲 ගස කපා දැමුවා! +2 🪵');
@@ -1161,11 +1598,11 @@
             } else if (data.type === 'ROCK') {
                 const rock = data.ref;
                 if (rock.hp <= 0) return;
-                const power = player.weapon === 'AXE' ? 35 : (player.weapon === 'SPEAR' ? 30 : 12);
+                const power = player.selectedSlot === 1 ? 38 : (player.selectedSlot === 2 ? 28 : 12);
                 rock.hp -= power;
                 playSFX('mine');
                 spawn3DParticles(hitPoint, 0x9ca3af, 8);
-                const gained = player.weapon === 'AXE' ? 2 : 1;
+                const gained = player.selectedSlot === 1 ? 2 : 1;
                 player.stone += gained;
                 score += 15;
                 showToast(`+${gained} 🪨 ගල් එකතු කරගත්තා`);
@@ -1199,12 +1636,11 @@
                 showToast('💧 පිරිසිදු ජලය පානය කළා (+40 පිපාසය)');
             } else if (data.type === 'WOLF') {
                 const wolf = data.ref;
-                const dmg = player.weapon === 'SPEAR' ? 50 : (player.weapon === 'AXE' ? 32 : 14);
+                const dmg = player.selectedSlot === 2 ? 52 : (player.selectedSlot === 1 ? 34 : (player.selectedSlot === 3 ? 26 : 14));
                 wolf.hp -= dmg;
                 playSFX('hurt');
                 spawn3DParticles(hitPoint, 0xef4444, 10);
 
-                // Knockback away from player
                 const pushDir = new THREE.Vector3().subVectors(wolf.group.position, player.pos).setY(0).normalize();
                 wolf.knockback.copy(pushDir.multiplyScalar(9));
 
@@ -1215,111 +1651,14 @@
                     const iIdx = interactables.indexOf(wolf.hitMesh);
                     if (iIdx !== -1) interactables.splice(iIdx, 1);
                     score += 150;
-                    player.berries += 1;
-                    showToast('🐺 වෘකයා පරාජය කළා! +150 ලකුණු');
+                    player.rawMeat += 1;
+                    showToast('🐺 වෘකයා පරාජය කළා! +1 🥩 අමු මස් (නිර්මාණ පොතෙන් පිසගන්න)');
                 } else {
                     showToast(`⚔️ වෘකයාට පහර දුන්නා (-${dmg} HP)`);
                 }
             }
 
             updateHUD();
-        }
-
-        function eatBerry() {
-            if (gameState !== 'PLAYING') return;
-            initAudio();
-            if (player.berries > 0) {
-                player.berries--;
-                player.hunger = Math.min(100, player.hunger + 30);
-                player.hp = Math.min(100, player.hp + 10);
-                playSFX('berry');
-                showToast('🍒 පලතුරක් ආහාරයට ගත්තා (+30 කුසගින්න | +10 ❤️)');
-                updateHUD();
-            } else {
-                showToast('❌ පලතුරු නැත! පඳුරු වලින් කඩාගන්න.');
-            }
-        }
-
-        function craftCampfire() {
-            if (gameState !== 'PLAYING') return;
-            initAudio();
-            // Refuel nearby campfire if within 3.5m
-            for (let cf of campfires) {
-                if (Math.hypot(player.pos.x - cf.x, player.pos.z - cf.z) < 3.5) {
-                    if (player.wood >= 2) {
-                        player.wood -= 2;
-                        cf.fuel = Math.min(100, cf.fuel + 55);
-                        playSFX('craft');
-                        showToast('🔥 ගිනි මැලයට දර දමා අලුත් කළා!');
-                        updateHUD();
-                    } else {
-                        showToast('❌ ගිනි මැලයට දැමීමට දර 2ක් අවශ්‍යයි.');
-                    }
-                    return;
-                }
-            }
-
-            if (player.wood >= 5 && player.stone >= 2) {
-                player.wood -= 5;
-                player.stone -= 2;
-                const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-                const fx = player.pos.x + forward.x * 2.6;
-                const fz = player.pos.z + forward.z * 2.6;
-                spawnCampfireAt(fx, fz, 100);
-                score += 80;
-                playSFX('craft');
-                showToast('🔥 නව ගිනි මැලයක් සෑදුවා!');
-                updateHUD();
-            } else {
-                showToast('❌ ගිනි මැලයට දර 5ක් සහ ගල් 2ක් අවශ්‍යයි!');
-            }
-        }
-
-        function craftAxe() {
-            if (gameState !== 'PLAYING') return;
-            initAudio();
-            if (player.weapon === 'AXE' || player.weapon === 'SPEAR') {
-                player.weapon = 'AXE';
-                axeGroup.visible = true;
-                spearGroup.visible = false;
-                updateHUD();
-                return;
-            }
-            if (player.wood >= 3 && player.stone >= 2) {
-                player.wood -= 3;
-                player.stone -= 2;
-                player.weapon = 'AXE';
-                axeGroup.visible = true;
-                spearGroup.visible = false;
-                score += 100;
-                playSFX('craft');
-                showToast('🪓 ගල් පොරව සෑදුවා! දැන් ගස් කැපීම වේගවත්.');
-                updateHUD();
-            } else {
-                showToast('❌ පොරව සෑදීමට දර 3ක් සහ ගල් 2ක් අවශ්‍යයි!');
-            }
-        }
-
-        function craftSpear() {
-            if (gameState !== 'PLAYING') return;
-            initAudio();
-            if (player.weapon === 'SPEAR') {
-                showToast('✅ ඔබ අතේ දැනටමත් හෙල්ල ඇත!');
-                return;
-            }
-            if (player.wood >= 4 && player.stone >= 3) {
-                player.wood -= 4;
-                player.stone -= 3;
-                player.weapon = 'SPEAR';
-                axeGroup.visible = false;
-                spearGroup.visible = true;
-                score += 200;
-                playSFX('craft');
-                showToast('🔱 දඩයම් හෙල්ල සෑදුවා! සතුන්ට දැඩි ප්‍රහාර දිය හැක.');
-                updateHUD();
-            } else {
-                showToast('❌ හෙල්ල සෑදීමට දර 4ක් සහ ගල් 3ක් අවශ්‍යයි!');
-            }
         }
 
         // --- 8. MAIN SIMULATION UPDATE LOOP ---
@@ -1498,6 +1837,26 @@
             }
             viewmodelGroup.position.set(0.36 + bobX * 0.6, -0.32 + Math.abs(bobY) * 0.6, -0.45);
 
+            // Hand Torch Fuel Consumption & Flickering Glow
+            if (player.selectedSlot === 3 && player.torches > 0) {
+                player.torchFuel -= 2.2 * dt;
+                handTorchLight.intensity = 2.1 + Math.sin(performance.now() * 0.025) * 0.45;
+                if (Math.random() < 0.2) {
+                    const worldTorchPos = new THREE.Vector3();
+                    torchHead.getWorldPosition(worldTorchPos);
+                    spawn3DParticles(worldTorchPos, 0xfbbf24, 1);
+                }
+                if (player.torchFuel <= 0) {
+                    player.torches--;
+                    if (player.torches > 0) {
+                        player.torchFuel = 100;
+                    } else {
+                        showToast('🔦 පන්දම නිවී ගියේය!');
+                        selectHotbarSlot(0);
+                    }
+                }
+            }
+
             // 3. Crosshair Raycast Target Detection
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const hits = raycaster.intersectObjects(interactables, false);
@@ -1598,27 +1957,27 @@
                 }
                 wolves = [];
             }
-
-            for (let w of wolves) {
-                if (w.attackCooldown > 0) w.attackCooldown -= dt;
-
-                if (w.knockback.lengthSq() > 0.05) {
-                    w.group.position.addScaledVector(w.knockback, dt);
-                    w.knockback.multiplyScalar(0.86);
-                } else {
-                    // Check if repelled by campfire
+                    // Check if repelled by campfire OR equipped Hand Torch
                     let targetPos = player.pos;
                     let speedMult = 1.0;
+                    const holdingTorch = (player.selectedSlot === 3 && player.torches > 0);
+                    const distToPlayerNow = Math.hypot(player.pos.x - w.group.position.x, player.pos.z - w.group.position.z);
 
-                    for (let cf of campfires) {
-                        const dFire = Math.hypot(w.group.position.x - cf.x, w.group.position.z - cf.z);
-                        if (dFire < 6.0) {
-                            // Circle warily outside campfire light
-                            const awayX = w.group.position.x - cf.x;
-                            const awayZ = w.group.position.z - cf.z;
-                            targetPos = new THREE.Vector3(w.group.position.x + awayX, 0, w.group.position.z + awayZ);
-                            speedMult = 0.75;
-                            break;
+                    if (holdingTorch && distToPlayerNow < 5.2) {
+                        const awayX = w.group.position.x - player.pos.x;
+                        const awayZ = w.group.position.z - player.pos.z;
+                        targetPos = new THREE.Vector3(w.group.position.x + awayX, 0, w.group.position.z + awayZ);
+                        speedMult = 0.7;
+                    } else {
+                        for (let cf of campfires) {
+                            const dFire = Math.hypot(w.group.position.x - cf.x, w.group.position.z - cf.z);
+                            if (dFire < 6.0) {
+                                const awayX = w.group.position.x - cf.x;
+                                const awayZ = w.group.position.z - cf.z;
+                                targetPos = new THREE.Vector3(w.group.position.x + awayX, 0, w.group.position.z + awayZ);
+                                speedMult = 0.75;
+                                break;
+                            }
                         }
                     }
 
@@ -1668,7 +2027,7 @@
 
         // --- 9. HUD SYNCHRONIZATION & GAME START/OVER ---
         function updateHUD() {
-            document.getElementById('hp-val').textContent = `${Math.ceil(player.hp)}/100`;
+            document.getElementById('hp-val').textContent = `${Math.ceil(player.hp)}`;
             document.getElementById('hp-bar').style.width = `${Math.max(0, player.hp)}%`;
 
             document.getElementById('hunger-val').textContent = `${Math.ceil(player.hunger)}%`;
@@ -1683,11 +2042,28 @@
             document.getElementById('inv-wood').textContent = player.wood;
             document.getElementById('inv-stone').textContent = player.stone;
             document.getElementById('inv-berries').textContent = player.berries;
+            document.getElementById('inv-rawmeat').textContent = player.rawMeat;
 
-            const wpIcons = { HAND: '👊', AXE: '🪓', SPEAR: '🔱' };
-            const wpNames = { HAND: 'අත', AXE: 'පොරව', SPEAR: 'හෙල්ල' };
-            document.getElementById('equipped-icon').textContent = wpIcons[player.weapon];
-            document.getElementById('equipped-name').textContent = wpNames[player.weapon];
+            // Update 6-Slot Hotbar Visual States & Counts
+            for (let i = 0; i < 6; i++) {
+                const slotEl = document.getElementById('slot-' + i);
+                slotEl.classList.toggle('selected', player.selectedSlot === i);
+            }
+            document.getElementById('slot-1').classList.toggle('opacity-45', !player.hasAxe);
+            document.getElementById('slot-2').classList.toggle('opacity-45', !player.hasSpear);
+            document.getElementById('slot-3').classList.toggle('opacity-45', player.torches <= 0);
+            document.getElementById('slot-4').classList.toggle('opacity-45', player.berries <= 0);
+            document.getElementById('slot-5').classList.toggle('opacity-45', player.bandages <= 0);
+
+            document.getElementById('slot-3-count').textContent = player.torches;
+            document.getElementById('slot-4-count').textContent = player.berries;
+            document.getElementById('slot-5-count').textContent = player.bandages;
+
+            // Update Compass Cardinal Direction
+            const deg = (((-player.yaw * 180 / Math.PI) % 360) + 360) % 360;
+            const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            const dirLabel = dirs[Math.round(deg / 45) % 8];
+            document.getElementById('compass-badge').textContent = `🧭 ${dirLabel}`;
 
             // Format 24h game clock
             const totalHours = Math.floor(timeOfDay * 24);
@@ -1702,7 +2078,7 @@
 
             document.getElementById('sky-icon').textContent = skyIcon;
             document.getElementById('day-label').textContent = `දිනය ${dayCount} - ${phase}`;
-            document.getElementById('clock-label').textContent = `වේලාව: ${clockStr} | ලකුණු: ${Math.floor(score)}`;
+            document.getElementById('clock-label').textContent = `${clockStr} | ලකුණු: ${Math.floor(score)}`;
         }
 
         function startGame() {
@@ -1718,9 +2094,15 @@
             player.wood = 2;
             player.stone = 1;
             player.berries = 2;
-            player.weapon = 'HAND';
-            axeGroup.visible = false;
-            spearGroup.visible = false;
+            player.rawMeat = 0;
+            player.torches = 0;
+            player.torchFuel = 100;
+            player.bandages = 0;
+            player.hasAxe = false;
+            player.hasSpear = false;
+            player.selectedSlot = 0;
+            isCraftingOpen = false;
+            updateViewmodelVisibility();
 
             score = 0;
             dayCount = 1;
@@ -1731,6 +2113,7 @@
 
             document.getElementById('start-overlay').classList.add('hidden');
             document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('crafting-book-modal').classList.add('hidden');
             document.getElementById('hud-top').classList.remove('hidden');
             document.getElementById('hud-bottom').classList.remove('hidden');
             document.getElementById('crosshair').classList.remove('hidden');
@@ -1738,15 +2121,17 @@
             gameState = 'PLAYING';
             lastTime = performance.now();
             requestPointerLockSafe();
-            showToast('🌲 වනාන්තරයට සාදරයෙන් පිළිගනිමු! දර, ගල් හා පලතුරු එකතු කරන්න.');
+            showToast('📖 [C] ඔබා නිර්මාණ පොත (Crafting Book) විවෘත කරන්න!');
         }
 
         function endGame(reason) {
             gameState = 'GAMEOVER';
+            isCraftingOpen = false;
             if (document.pointerLockElement) {
                 try { document.exitPointerLock(); } catch (e) {}
             }
             document.getElementById('lock-banner').classList.add('hidden');
+            document.getElementById('crafting-book-modal').classList.add('hidden');
             document.getElementById('death-reason').textContent = reason;
             document.getElementById('final-days').textContent = dayCount;
             document.getElementById('final-score').textContent = Math.floor(score);
@@ -1757,7 +2142,9 @@
             const dt = Math.min(0.05, (now - lastTime) / 1000);
             lastTime = now;
 
-            updateSimulation(dt);
+            if (!isCraftingOpen) {
+                updateSimulation(dt);
+            }
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
