@@ -35,6 +35,8 @@ class SurvivalGameEngine(
         private set
     var isCraftingOpen: Boolean = false
         private set
+    var isPaused: Boolean = false
+        private set
     var currentCraftTab: CraftCategory = CraftCategory.ALL
         private set
 
@@ -190,6 +192,7 @@ class SurvivalGameEngine(
             stepTimer = 0f
             sprintToggle = false
             isCraftingOpen = false
+            isPaused = false
             currentCraftTab = CraftCategory.ALL
             score = 0f
             dayCount = 1
@@ -287,7 +290,7 @@ class SurvivalGameEngine(
 
     fun addLookDelta(dx: Float, dy: Float) {
         synchronized(worldLock) {
-            if (gamePhase != GamePhase.PLAYING || isCraftingOpen) return
+            if (gamePhase != GamePhase.PLAYING || isCraftingOpen || isPaused) return
             val sensitivity = 0.0042f
             yaw -= dx * sensitivity
             pitch -= dy * sensitivity
@@ -298,12 +301,23 @@ class SurvivalGameEngine(
 
     fun jump() {
         synchronized(worldLock) {
-            if (gamePhase != GamePhase.PLAYING || isCraftingOpen) return
+            if (gamePhase != GamePhase.PLAYING || isCraftingOpen || isPaused) return
             if (onGround) {
                 playerVelY = 7.2f
                 onGround = false
             }
         }
+    }
+
+    fun setPaused(paused: Boolean) {
+        synchronized(worldLock) {
+            if (gamePhase != GamePhase.PLAYING) {
+                isPaused = false
+            } else {
+                isPaused = paused
+            }
+        }
+        emitHudImmediate()
     }
 
     fun toggleMute() {
@@ -599,7 +613,7 @@ class SurvivalGameEngine(
 
         synchronized(worldLock) {
             elapsedSec += dt
-            if (gamePhase != GamePhase.PLAYING || isCraftingOpen) {
+            if (gamePhase != GamePhase.PLAYING || isCraftingOpen || isPaused) {
                 return
             }
 
@@ -724,10 +738,7 @@ class SurvivalGameEngine(
             // 4. Raycast Target Detection
             currentTarget = performRaycast()
 
-            // 5. Survival Hunger/Thirst Decay & Campfires
-            hunger = max(0f, hunger - 1.15f * dt)
-            thirst = max(0f, thirst - 1.55f * dt)
-
+            // 5. Campfire Warmth & Fuel
             var isNearFire = false
             var canRefuel = false
             val cfIter = campfires.listIterator()
@@ -749,16 +760,6 @@ class SurvivalGameEngine(
 
             if (isNearFire && hp < 100f) {
                 hp = min(100f, hp + 3.0f * dt)
-            } else if (hunger <= 0f || thirst <= 0f) {
-                hp -= 4.0f * dt
-                if (hp <= 0f) {
-                    endGame(
-                        if (hunger <= 0f) "කුසගින්න නිසා ජීවිතය අහිමි විය."
-                        else "පිපාසය නිසා ජීවිතය අහිමි විය."
-                    )
-                    shouldEmitNow = true
-                    return@synchronized
-                }
             }
 
             // 6. Resource Respawn Timers
@@ -1111,9 +1112,25 @@ class SurvivalGameEngine(
         return null
     }
 
+    fun updateVitalsFromViewModel(newHunger: Float, newThirst: Float) {
+        synchronized(worldLock) {
+            hunger = newHunger.coerceIn(0f, 100f)
+            thirst = newThirst.coerceIn(0f, 100f)
+        }
+    }
+
+    fun triggerGameOver(reason: String) {
+        synchronized(worldLock) {
+            if (gamePhase == GamePhase.GAMEOVER) return
+            endGame(reason)
+        }
+        emitHudImmediate()
+    }
+
     private fun endGame(reason: String) {
         gamePhase = GamePhase.GAMEOVER
         isCraftingOpen = false
+        isPaused = false
         deathReason = reason
     }
 
@@ -1122,16 +1139,29 @@ class SurvivalGameEngine(
         toastSeq++
     }
 
+    private fun computeSurvivalStatus(): SurvivalStatus {
+        return when {
+            gamePhase == GamePhase.GAMEOVER || hp <= 0f -> SurvivalStatus.DEFEATED
+            hp <= 30f || hunger <= 15f || thirst <= 15f -> SurvivalStatus.CRITICAL
+            nearWarmFire && hp < 100f -> SurvivalStatus.WARM_BY_FIRE
+            hunger <= 40f -> SurvivalStatus.HUNGRY
+            thirst <= 40f -> SurvivalStatus.THIRSTY
+            else -> SurvivalStatus.HEALTHY
+        }
+    }
+
     private fun emitHudImmediate() {
         val snap = synchronized(worldLock) {
             HudSnapshot(
                 gamePhase = gamePhase,
                 isCraftingOpen = isCraftingOpen,
+                isPaused = isPaused,
                 currentCraftTab = currentCraftTab,
                 hp = hp,
                 hunger = hunger,
                 thirst = thirst,
                 stamina = stamina,
+                survivalStatus = computeSurvivalStatus(),
                 wood = wood,
                 stone = stone,
                 berries = berries,

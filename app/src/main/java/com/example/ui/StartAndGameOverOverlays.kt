@@ -2,8 +2,10 @@ package com.example.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -49,68 +51,92 @@ import com.example.ui.theme.RoseCrimson
 fun StartOverlay(
     onStartGame: () -> Unit
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.78f))
+            .background(Color.Black.copy(alpha = 0.72f))
+            .clickable(enabled = false) {}
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(16.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
+        val compactHeight = maxHeight < 420.dp
+        val isNarrow = maxWidth < 560.dp
+
         Column(
             modifier = Modifier
-                .widthIn(max = 640.dp)
+                .widthIn(max = 620.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(26.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(GlassHudBg)
-                .border(1.5.dp, ForestEmerald.copy(alpha = 0.35f), RoundedCornerShape(26.dp))
+                .border(1.5.dp, ForestEmerald.copy(alpha = 0.40f), RoundedCornerShape(24.dp))
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 18.dp),
+                .padding(
+                    horizontal = if (isNarrow) 16.dp else 22.dp,
+                    vertical = if (compactHeight) 12.dp else 18.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "🌲🔥🐺📖", fontSize = 30.sp)
-            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = "🌲🔥🐺📖", fontSize = if (compactHeight) 22.sp else 28.sp)
+            Spacer(modifier = Modifier.height(if (compactHeight) 2.dp else 4.dp))
             Text(
                 text = stringResource(R.string.title_game_si),
                 style = MaterialTheme.typography.headlineLarge,
+                fontSize = if (compactHeight || isNarrow) 20.sp else 25.sp,
+                lineHeight = if (compactHeight || isNarrow) 26.sp else 32.sp,
                 color = AmberGold,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.start_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFD1D5DB),
                 textAlign = TextAlign.Center,
-                fontSize = 12.sp,
-                lineHeight = 17.sp
+                fontSize = if (compactHeight) 11.sp else 12.sp,
+                lineHeight = if (compactHeight) 15.sp else 17.sp
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(if (compactHeight) 8.dp else 12.dp))
 
-            // Controls Cheat-sheet
+            // Controls Cheat-sheet (2-col on portrait, 3-col on wide)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.Black.copy(alpha = 0.45f))
-                    .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 12.dp, vertical = if (compactHeight) 8.dp else 10.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ControlItem("Joystick / WASD:", "ඇවිදින්න", Modifier.weight(1f))
-                    ControlItem("Swipe Screen:", "වටපිට බලන්න", Modifier.weight(1f))
-                    ControlItem("Action / Tap:", "කපන්න / පහර දෙන්න", Modifier.weight(1f))
-                }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ControlItem("Hotbar 1 - 6:", "ආයුධ තෝරන්න", Modifier.weight(1f))
-                    ControlItem("📖 Book [C]:", "නිර්මාණ පොත", Modifier.weight(1f))
-                    ControlItem("Sprint / Jump:", "දුවන්න / පනින්න", Modifier.weight(1f))
+                if (isNarrow) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ControlItem("Joystick:", "ඇවිදින්න", Modifier.weight(1f))
+                        ControlItem("Swipe:", "වටපිට බලන්න", Modifier.weight(1f))
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ControlItem("Tap / Action:", "කපන්න / පහර දෙන්න", Modifier.weight(1f))
+                        ControlItem("📖 Book:", "නිර්මාණ පොත", Modifier.weight(1f))
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ControlItem("Hotbar 1-6:", "ආයුධ තෝරන්න", Modifier.weight(1f))
+                        ControlItem("Sprint / Jump:", "දුවන්න / පනින්න", Modifier.weight(1f))
+                    }
+                } else {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ControlItem("Joystick / WASD:", "ඇවිදින්න", Modifier.weight(1f))
+                        ControlItem("Swipe Screen:", "වටපිට බලන්න", Modifier.weight(1f))
+                        ControlItem("Action / Tap:", "කපන්න / පහර", Modifier.weight(1f))
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ControlItem("Hotbar 1 - 6:", "ආයුධ තෝරන්න", Modifier.weight(1f))
+                        ControlItem("📖 Book [C]:", "නිර්මාණ පොත", Modifier.weight(1f))
+                        ControlItem("Sprint / Jump:", "දුවන්න / පනින්න", Modifier.weight(1f))
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(if (compactHeight) 10.dp else 14.dp))
 
             Button(
                 onClick = onStartGame,
@@ -121,7 +147,7 @@ fun StartOverlay(
                 ),
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
-                    .fillMaxWidth(0.75f)
+                    .fillMaxWidth(if (isNarrow) 0.92f else 0.72f)
                     .height(48.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.horizontalGradient(listOf(ForestEmerald, ForestTeal)))
@@ -143,13 +169,13 @@ private fun ControlItem(keyLabel: String, desc: String, modifier: Modifier = Mod
         Text(
             text = "$keyLabel ",
             color = AmberGold,
-            fontSize = 11.sp,
+            fontSize = 10.5.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = desc,
             color = Color(0xFFE5E7EB),
-            fontSize = 11.sp
+            fontSize = 10.5.sp
         )
     }
 }
@@ -163,6 +189,7 @@ fun GameOverOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.85f))
+            .clickable(enabled = false) {}
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(16.dp),
         contentAlignment = Alignment.Center
@@ -174,11 +201,11 @@ fun GameOverOverlay(
                 .clip(RoundedCornerShape(26.dp))
                 .background(GlassHudBg)
                 .border(1.5.dp, RoseCrimson.copy(alpha = 0.45f), RoundedCornerShape(26.dp))
-                .padding(24.dp),
+                .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "💀", fontSize = 36.sp)
-            Spacer(modifier = Modifier.height(6.dp))
+            Text(text = "💀", fontSize = 34.sp)
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.game_over_title),
                 style = MaterialTheme.typography.headlineMedium,
@@ -267,3 +294,62 @@ fun GameOverOverlay(
         }
     }
 }
+
+@Composable
+fun PauseOverlay(
+    hud: HudSnapshot,
+    onResume: () -> Unit,
+    onRestart: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.75f))
+            .clickable(enabled = false) {}
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 380.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(GlassHudBg)
+                .border(1.5.dp, AmberGold.copy(alpha = 0.45f), RoundedCornerShape(24.dp))
+                .padding(22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(text = "⏸️ ක්‍රීඩාව නවතා ඇත (Paused)", style = MaterialTheme.typography.headlineMedium, color = AmberGold)
+            Text(
+                text = "${hud.survivalStatus.icon} ${hud.survivalStatus.labelSi} • ❤️ ${hud.hp.toInt()} • දිනය ${hud.dayCount}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFE5E7EB)
+            )
+            Button(
+                onClick = onResume,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = ForestEmerald, contentColor = Color.White),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("resume_game_button")
+            ) {
+                Text("දිගටම කරගෙන යන්න (Resume) ▶", fontWeight = FontWeight.ExtraBold)
+            }
+            Button(
+                onClick = onRestart,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.14f), contentColor = Color.White),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("pause_restart_button")
+            ) {
+                Text("නැවත අරඹන්න (Restart) ↻", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+

@@ -160,12 +160,6 @@ class WildSurvivalRenderer(
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        val nowNs = System.nanoTime()
-        val dt = ((nowNs - lastFrameNs) / 1_000_000_000.0).toFloat().coerceIn(0.001f, 0.05f)
-        lastFrameNs = nowNs
-
-        engine.step(dt)
-
         synchronized(engine.worldLock) {
             renderSceneLocked()
         }
@@ -184,11 +178,17 @@ class WildSurvivalRenderer(
         val camX = engine.playerPos.x
         val camY = engine.playerPos.y + bobY
         val camZ = engine.playerPos.z
+        val camYaw = if (engine.gamePhase == GamePhase.START) {
+            sin(engine.elapsedSec * 0.18f) * 0.35f
+        } else {
+            engine.yaw
+        }
+        val camPitch = if (engine.gamePhase == GamePhase.START) -0.08f else engine.pitch
 
         // View Matrix: Rx(-pitch) * Ry(-yaw) * T(-camPos)
         Matrix.setIdentityM(viewMatrix, 0)
-        Matrix.rotateM(viewMatrix, 0, -Math.toDegrees(engine.pitch.toDouble()).toFloat(), 1f, 0f, 0f)
-        Matrix.rotateM(viewMatrix, 0, -Math.toDegrees(engine.yaw.toDouble()).toFloat(), 0f, 1f, 0f)
+        Matrix.rotateM(viewMatrix, 0, -Math.toDegrees(camPitch.toDouble()).toFloat(), 1f, 0f, 0f)
+        Matrix.rotateM(viewMatrix, 0, -Math.toDegrees(camYaw.toDouble()).toFloat(), 0f, 1f, 0f)
         Matrix.translateM(viewMatrix, 0, -camX, -camY, -camZ)
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
@@ -200,12 +200,13 @@ class WildSurvivalRenderer(
             GLES20.glUseProgram(starShader.programId)
             val starView = FloatArray(16)
             Matrix.setIdentityM(starView, 0)
-            Matrix.rotateM(starView, 0, -Math.toDegrees(engine.pitch.toDouble()).toFloat(), 1f, 0f, 0f)
-            Matrix.rotateM(starView, 0, -Math.toDegrees(engine.yaw.toDouble()).toFloat(), 0f, 1f, 0f)
+            Matrix.rotateM(starView, 0, -Math.toDegrees(camPitch.toDouble()).toFloat(), 1f, 0f, 0f)
+            Matrix.rotateM(starView, 0, -Math.toDegrees(camYaw.toDouble()).toFloat(), 0f, 1f, 0f)
             val starMvp = FloatArray(16)
             Matrix.multiplyMM(starMvp, 0, projMatrix, 0, starView, 0)
             GLES20.glUniformMatrix4fv(starShader.uMVPMatrix, 1, false, starMvp, 0)
             GLES20.glUniform1f(starShader.uOpacity, engine.starOpacity)
+            GLES20.glDisableVertexAttribArray(worldShader.aNormal)
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, starVboId)
             GLES20.glEnableVertexAttribArray(starShader.aPosition)
             GLES20.glVertexAttribPointer(starShader.aPosition, 3, GLES20.GL_FLOAT, false, 12, 0)
@@ -224,6 +225,9 @@ class WildSurvivalRenderer(
         GLES20.glUniform1f(worldShader.uFogDensity, 0.014f)
         GLES20.glUniform3f(worldShader.uCameraPos, camX, camY, camZ)
 
+        for (i in 0 until 6) {
+            pointLightIntensity[i] = 0f
+        }
         var lightCount = 0
         val tSec = engine.elapsedSec
         // Hand Torch Point Light
@@ -249,12 +253,9 @@ class WildSurvivalRenderer(
             pointLightIntensity[idx] = (1.8f + sin(tSec * 19f + i * 1.7f) * 0.4f) * (cf.fuel / 100f)
             lightCount++
         }
-        GLES20.glUniform1i(worldShader.uPointLightCount, lightCount)
-        if (lightCount > 0) {
-            GLES20.glUniform3fv(worldShader.uPointLightPos, lightCount, pointLightPos, 0)
-            GLES20.glUniform3fv(worldShader.uPointLightColor, lightCount, pointLightColor, 0)
-            GLES20.glUniform1fv(worldShader.uPointLightIntensity, lightCount, pointLightIntensity, 0)
-        }
+        GLES20.glUniform3fv(worldShader.uPointLightPos, 6, pointLightPos, 0)
+        GLES20.glUniform3fv(worldShader.uPointLightColor, 6, pointLightColor, 0)
+        GLES20.glUniform1fv(worldShader.uPointLightIntensity, 6, pointLightIntensity, 0)
 
         // 3. Draw Terrain & Water
         // Ocean

@@ -29,6 +29,12 @@ fun GameViewport(
     val glView = remember {
         GLSurfaceView(context).apply {
             setEGLContextClientVersion(2)
+            try {
+                setEGLConfigChooser(8, 8, 8, 8, 16, 0)
+            } catch (_: Throwable) {
+                // Fallback to default EGL config
+            }
+            preserveEGLContextOnPause = true
             setRenderer(WildSurvivalRenderer(engine))
             renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
         }

@@ -20,6 +20,7 @@ class GpuMesh(
         GLES20.glEnableVertexAttribArray(normAttr)
         GLES20.glVertexAttribPointer(normAttr, 3, GLES20.GL_FLOAT, false, 24, 12)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0)
     }
 }
 
@@ -105,9 +106,9 @@ object MeshBuilder {
             pushQuad(
                 out,
                 c0 * innerR, 0f, s0 * innerR,
-                c0 * outerR, 0f, s0 * outerR,
-                c1 * outerR, 0f, s1 * outerR,
                 c1 * innerR, 0f, s1 * innerR,
+                c1 * outerR, 0f, s1 * outerR,
+                c0 * outerR, 0f, s0 * outerR,
                 0f, 1f, 0f
             )
         }
@@ -141,7 +142,6 @@ object MeshBuilder {
             val c0 = cos(a0); val s0 = sin(a0)
             val c1 = cos(a1); val s1 = sin(a1)
 
-            // Side normal approximation
             val am = (a0 + a1) * 0.5f
             val slope = (radiusBottom - radiusTop) / height
             val nx = cos(am)
@@ -149,16 +149,17 @@ object MeshBuilder {
             val ny = slope
             val nl = sqrt(nx * nx + ny * ny + nz * nz).coerceAtLeast(0.001f)
 
+            // Outward CCW winding
             pushQuad(
                 out,
                 c0 * radiusBottom, -hh, s0 * radiusBottom,
-                c1 * radiusBottom, -hh, s1 * radiusBottom,
-                c1 * radiusTop, hh, s1 * radiusTop,
                 c0 * radiusTop, hh, s0 * radiusTop,
+                c1 * radiusTop, hh, s1 * radiusTop,
+                c1 * radiusBottom, -hh, s1 * radiusBottom,
                 nx / nl, ny / nl, nz / nl
             )
 
-            // Top cap
+            // Top cap (+Y normal)
             if (radiusTop > 0.001f) {
                 pushTri(
                     out,
@@ -168,7 +169,7 @@ object MeshBuilder {
                     0f, 1f, 0f
                 )
             }
-            // Bottom cap
+            // Bottom cap (-Y normal)
             if (radiusBottom > 0.001f) {
                 pushTri(
                     out,
@@ -197,14 +198,15 @@ object MeshBuilder {
             val ny = radius / height
             val nl = sqrt(nx * nx + ny * ny + nz * nz).coerceAtLeast(0.001f)
 
+            // Outward CCW winding
             pushTri(
                 out,
                 c0 * radius, -hh, s0 * radius,
-                c1 * radius, -hh, s1 * radius,
                 0f, hh, 0f,
+                c1 * radius, -hh, s1 * radius,
                 nx / nl, ny / nl, nz / nl
             )
-            // Base cap
+            // Base cap (-Y normal)
             pushTri(
                 out,
                 0f, -hh, 0f,
@@ -241,11 +243,12 @@ object MeshBuilder {
                 val ny = cos(pm)
                 val nz = sin(pm) * sin(tm)
 
+                // Outward CCW winding
                 if (lat > 0) {
-                    pushTri(out, ax, y0, az, cx, y1, cz, dx, y0, dz, nx, ny, nz)
+                    pushTri(out, ax, y0, az, dx, y0, dz, cx, y1, cz, nx, ny, nz)
                 }
                 if (lat < latBands - 1) {
-                    pushTri(out, ax, y0, az, bx, y1, bz, cx, y1, cz, nx, ny, nz)
+                    pushTri(out, ax, y0, az, cx, y1, cz, bx, y1, bz, nx, ny, nz)
                 }
             }
         }

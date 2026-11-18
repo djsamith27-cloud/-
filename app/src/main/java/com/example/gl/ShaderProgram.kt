@@ -18,7 +18,6 @@ class WorldShaderProgram {
     val uSkyColor: Int
     val uFogDensity: Int
     val uCameraPos: Int
-    val uPointLightCount: Int
     val uPointLightPos: Int
     val uPointLightColor: Int
     val uPointLightIntensity: Int
@@ -34,7 +33,12 @@ class WorldShaderProgram {
             void main() {
                 vec4 worldPos = uModelMatrix * vec4(aPosition, 1.0);
                 vWorldPos = worldPos.xyz;
-                vWorldNormal = normalize(mat3(uModelMatrix) * aNormal);
+                mat3 normalMat = mat3(
+                    uModelMatrix[0].xyz,
+                    uModelMatrix[1].xyz,
+                    uModelMatrix[2].xyz
+                );
+                vWorldNormal = normalize(normalMat * aNormal);
                 gl_Position = uMVPMatrix * vec4(aPosition, 1.0);
             }
         """.trimIndent()
@@ -53,7 +57,6 @@ class WorldShaderProgram {
             uniform float uFogDensity;
             uniform vec3 uCameraPos;
 
-            uniform int uPointLightCount;
             uniform vec3 uPointLightPos[6];
             uniform vec3 uPointLightColor[6];
             uniform float uPointLightIntensity[6];
@@ -61,37 +64,35 @@ class WorldShaderProgram {
             void main() {
                 vec3 N = normalize(vWorldNormal);
 
-                // Hemisphere ambient light
                 float hemiFactor = N.y * 0.5 + 0.5;
                 vec3 skyAmb = vec3(0.86, 0.92, 1.0);
                 vec3 groundAmb = vec3(0.12, 0.25, 0.13);
                 vec3 ambient = mix(groundAmb, skyAmb, hemiFactor) * uHemiIntensity;
 
-                // Directional sun light
                 float ndotl = max(dot(N, normalize(uSunDir)), 0.0);
                 vec3 sun = vec3(1.0, 0.98, 0.92) * ndotl * uSunIntensity;
 
-                // Dynamic point lights (campfires + hand torch)
                 vec3 pointTotal = vec3(0.0);
                 for (int i = 0; i < 6; i++) {
-                    if (i >= uPointLightCount) break;
-                    vec3 toLight = uPointLightPos[i] - vWorldPos;
-                    float dist = length(toLight);
-                    if (dist < 18.0) {
-                        vec3 L = toLight / max(dist, 0.001);
-                        float diff = max(dot(N, L), 0.15);
-                        float atten = clamp(1.0 - (dist / 18.0), 0.0, 1.0);
-                        atten = atten * atten;
-                        pointTotal += uPointLightColor[i] * diff * atten * uPointLightIntensity[i];
+                    float lightPower = uPointLightIntensity[i];
+                    if (lightPower > 0.001) {
+                        vec3 toLight = uPointLightPos[i] - vWorldPos;
+                        float dist = length(toLight);
+                        if (dist < 18.0) {
+                            vec3 L = toLight / max(dist, 0.001);
+                            float diff = max(dot(N, L), 0.15);
+                            float atten = clamp(1.0 - (dist / 18.0), 0.0, 1.0);
+                            atten = atten * atten;
+                            pointTotal += uPointLightColor[i] * diff * atten * lightPower;
+                        }
                     }
                 }
 
                 vec3 litColor = uColor * (ambient + sun + pointTotal + vec3(uEmissive));
 
-                // Exponential FogExp2
                 float camDist = length(vWorldPos - uCameraPos);
-                float fogFactor = 1.0 - exp(-pow(camDist * uFogDensity, 2.0));
-                fogFactor = clamp(fogFactor, 0.0, 1.0);
+                float fogArg = camDist * uFogDensity;
+                float fogFactor = clamp(1.0 - exp(-(fogArg * fogArg)), 0.0, 1.0);
                 vec3 finalColor = mix(litColor, uSkyColor, fogFactor);
 
                 gl_FragColor = vec4(finalColor, 1.0);
@@ -112,7 +113,6 @@ class WorldShaderProgram {
         uSkyColor = GLES20.glGetUniformLocation(programId, "uSkyColor")
         uFogDensity = GLES20.glGetUniformLocation(programId, "uFogDensity")
         uCameraPos = GLES20.glGetUniformLocation(programId, "uCameraPos")
-        uPointLightCount = GLES20.glGetUniformLocation(programId, "uPointLightCount")
         uPointLightPos = GLES20.glGetUniformLocation(programId, "uPointLightPos")
         uPointLightColor = GLES20.glGetUniformLocation(programId, "uPointLightColor")
         uPointLightIntensity = GLES20.glGetUniformLocation(programId, "uPointLightIntensity")

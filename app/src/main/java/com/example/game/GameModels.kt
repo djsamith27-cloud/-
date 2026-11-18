@@ -183,14 +183,25 @@ data class ParticleEntity(
     val b: Float
 )
 
+enum class SurvivalStatus(val icon: String, val labelSi: String, val labelEn: String) {
+    HEALTHY("💚", "සුවෙන්", "Healthy"),
+    WARM_BY_FIRE("🔥", "උණුසුම් වෙමින්", "Warming"),
+    HUNGRY("🍖", "කුසගිනියි", "Hungry"),
+    THIRSTY("💧", "පිපාසයි", "Thirsty"),
+    CRITICAL("🚨", "අවදානම්!", "Critical"),
+    DEFEATED("💀", "පරාජිතයි", "Defeated")
+}
+
 data class HudSnapshot(
     val gamePhase: GamePhase = GamePhase.START,
     val isCraftingOpen: Boolean = false,
+    val isPaused: Boolean = false,
     val currentCraftTab: CraftCategory = CraftCategory.ALL,
     val hp: Float = 100f,
     val hunger: Float = 100f,
     val thirst: Float = 100f,
     val stamina: Float = 100f,
+    val survivalStatus: SurvivalStatus = SurvivalStatus.HEALTHY,
     val wood: Int = 2,
     val stone: Int = 1,
     val berries: Int = 2,

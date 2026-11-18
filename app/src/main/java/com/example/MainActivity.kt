@@ -20,6 +20,7 @@ import com.example.ui.CraftingBookModal
 import com.example.ui.GameOverOverlay
 import com.example.ui.GameViewModel
 import com.example.ui.GameViewport
+import com.example.ui.PauseOverlay
 import com.example.ui.StartOverlay
 import com.example.ui.SurvivalHud
 import com.example.ui.theme.WildSurvivalTheme
@@ -42,10 +43,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             WildSurvivalTheme {
                 val hud by viewModel.hudState.collectAsStateWithLifecycle()
+                val survivalStatus = viewModel.survivalStatus
 
                 if (hud.isCraftingOpen) {
                     BackHandler {
                         viewModel.toggleCraftingBook(false)
+                    }
+                } else if (hud.isPaused) {
+                    BackHandler {
+                        viewModel.resumeGame()
                     }
                 }
 
@@ -59,6 +65,9 @@ class MainActivity : ComponentActivity() {
                         GamePhase.PLAYING -> {
                             SurvivalHud(
                                 hud = hud,
+                                survivalStatus = survivalStatus,
+                                playerHunger = viewModel.playerHunger,
+                                playerThirst = viewModel.playerThirst,
                                 onJoystickMove = { x, y -> viewModel.setJoystick(x, y) },
                                 onPrimaryAction = { viewModel.performPrimaryAction() },
                                 onJump = { viewModel.jump() },
@@ -66,8 +75,17 @@ class MainActivity : ComponentActivity() {
                                 onSelectSlot = { viewModel.selectHotbarSlot(it) },
                                 onOpenCrafting = { viewModel.toggleCraftingBook(true) },
                                 onRefuelCampfire = { viewModel.refuelCampfire() },
-                                onToggleMute = { viewModel.toggleMute() }
+                                onToggleMute = { viewModel.toggleMute() },
+                                onTogglePause = { viewModel.togglePause() }
                             )
+
+                            if (hud.isPaused && !hud.isCraftingOpen) {
+                                PauseOverlay(
+                                    hud = hud,
+                                    onResume = { viewModel.resumeGame() },
+                                    onRestart = { viewModel.startGame() }
+                                )
+                            }
 
                             if (hud.isCraftingOpen) {
                                 CraftingBookModal(
@@ -90,6 +108,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        viewModel.stopGameLoop()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.startGameLoop()
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         pressedKeys.add(keyCode)
         updateKeyboardMovement()
@@ -101,9 +129,16 @@ class MainActivity : ComponentActivity() {
                     viewModel.toggleCraftingBook()
                     return true
                 }
+                KeyEvent.KEYCODE_P -> {
+                    viewModel.togglePause()
+                    return true
+                }
                 KeyEvent.KEYCODE_ESCAPE -> {
                     if (hud.isCraftingOpen) {
                         viewModel.toggleCraftingBook(false)
+                        return true
+                    } else {
+                        viewModel.togglePause()
                         return true
                     }
                 }
